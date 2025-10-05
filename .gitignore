@@ -1,0 +1,37 @@
+# Archivos compilados de Java
+*.class
+*.jar
+!lib/*.jar
+
+# Directorios de compilación
+bin/
+out/
+target/
+
+# Archivos de configuración de usuarios (pueden contener credenciales)
+files/
+
+# Logs
+*.log
+
+# Archivos del sistema operativo
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDEs
+.idea/
+*.iml
+.vscode/
+*.swp
+*.swo
+*~
+.project
+.classpath
+.settings/
+
+# Archivos temporales
+*.tmp
+*.bak
+*.swp
+*.old

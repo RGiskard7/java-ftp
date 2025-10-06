@@ -35,3 +35,6 @@ desktop.ini
 *.bak
 *.swp
 *.old
+
+# Documentación JavaDoc generada
+docs/

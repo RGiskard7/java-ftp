@@ -10,10 +10,30 @@ import org.apache.commons.net.ftp.FTPReply;
 import FTP.Util.Util;
 
 /**
+ * Cliente FTP interactivo de consola.
+ * <p>
+ * Proporciona una interfaz de línea de comandos para conectarse a un servidor FTP
+ * y realizar operaciones como:
+ * <ul>
+ *   <li>Listar, subir y descargar archivos</li>
+ *   <li>Crear y eliminar directorios</li>
+ *   <li>Renombrar archivos y directorios</li>
+ *   <li>Navegar por el sistema de archivos remoto</li>
+ * </ul>
+ * <p>
+ * Soporta modos de transferencia ACTIVE y PASSIVE.
+ *
  * @author Eduardo Díaz Sánchez
+ * @version 1.0
  */
 public class JavaFtpClient {
-	
+
+	/**
+	 * Punto de entrada principal del cliente FTP.
+	 * Establece conexión con el servidor, autentica al usuario y presenta un menú interactivo.
+	 *
+	 * @param args Argumentos de línea de comandos (no utilizados)
+	 */
 	public static void main(String[] args) {
 		FTPClient ftpClient;
 		ClientFuntions clientFuntions;
@@ -138,7 +158,13 @@ public class JavaFtpClient {
             }
 		}
 	}
-	
+
+	/**
+	 * Solicita y captura el hostname y puerto del servidor FTP.
+	 *
+	 * @param sc Scanner para leer entrada del usuario
+	 * @return Array con [hostname, puerto]
+	 */
 	private static String[] captureHostname(Scanner sc) {
 		String hostname = "localhost"; 
 		String port = "21";
@@ -156,9 +182,15 @@ public class JavaFtpClient {
 		if (input != null && !input.isBlank())
 			port = input;
 		
-		return new String[] {hostname, port};		
+		return new String[] {hostname, port};
 	}
-	
+
+	/**
+	 * Solicita las credenciales del usuario (nombre y contraseña).
+	 *
+	 * @param sc Scanner para leer entrada del usuario
+	 * @return Array con [username, password]
+	 */
 	private static String[] inputUserCredentials(Scanner sc) {
 		String input = null;
 		String user = "";
@@ -194,7 +226,13 @@ public class JavaFtpClient {
 		
 		return new String[] {user, pass};
 	}
-	
+
+	/**
+	 * Solicita al usuario seleccionar el modo de transferencia de datos.
+	 *
+	 * @param sc Scanner para leer entrada del usuario
+	 * @return "PASSIVE" o "ACTIVE"
+	 */
 	private static String selectMode(Scanner sc) {
 		String mode = "PASIVE";
 		String input = null;
@@ -218,14 +256,31 @@ public class JavaFtpClient {
 		
 		return mode;
 	}
-	
+
+	/**
+	 * Configura el cliente FTP en modo pasivo.
+	 * En este modo, el servidor abre un puerto y el cliente se conecta a él.
+	 *
+	 * @param ftpClient Cliente FTP a configurar
+	 * @param sc Scanner para entrada del usuario (no utilizado en modo pasivo)
+	 * @throws IOException Si ocurre un error de comunicación
+	 */
 	public static void handlerPasiveMode(FTPClient ftpClient, Scanner sc) throws IOException {
 		ftpClient.enterLocalPassiveMode();
 		ftpClient.sendCommand("PASV");
 		
 		Util.printGreenColor("\nModo pasivo configurado");  
 	}
-	
+
+	/**
+	 * Configura el cliente FTP en modo activo.
+	 * En este modo, el cliente abre un puerto y el servidor se conecta a él.
+	 *
+	 * @param ftpClient Cliente FTP a configurar
+	 * @param sc Scanner para solicitar puerto de datos al usuario
+	 * @return Puerto de datos abierto por el cliente
+	 * @throws IOException Si ocurre un error de comunicación
+	 */
 	public static int handlerActiveMode(FTPClient ftpClient, Scanner sc) throws IOException {
 		InetAddress inetAdress;
 		String hostAddress, comandoPort;
@@ -255,7 +310,10 @@ public class JavaFtpClient {
         
         return dataPort; // Devuelve el puerto que el cliente abrió
 	}
-	
+
+	/**
+	 * Muestra el menú de opciones disponibles para el cliente FTP.
+	 */
 	public static void showMenu() {
 	    System.out.println("\n=== Menú FTP ===");
 	    System.out.println("[1] Listar archivos");

@@ -12,16 +12,34 @@ import java.net.Socket;
 import FTP.Util.Util;
 
 /**
+ * Implementación de las funciones del servidor FTP.
+ * <p>
+ * Esta clase encapsula la lógica de todos los comandos FTP del servidor,
+ * incluyendo operaciones de archivos, directorios y transferencias de datos.
+ *
  * @author Eduardo Díaz Sánchez
+ * @version 1.0
  */
 public class ServerFunctions {
-	private FtpClientHandler handler;    
-    private File pendingRenameFile; // Variable para almacenar el archivo/directorio RNFR
-	
+	/** Referencia al manejador del cliente FTP */
+	private FtpClientHandler handler;
+
+	/** Archivo/directorio pendiente para operación de renombrado (comando RNFR) */
+    private File pendingRenameFile;
+
+	/**
+	 * Constructor que inicializa las funciones del servidor.
+	 *
+	 * @param handler Manejador del cliente FTP asociado
+	 */
     public ServerFunctions(FtpClientHandler handler) {
         this.handler = handler;
     }
-	
+
+	/**
+	 * Maneja el comando LIST para listar archivos y directorios.
+	 * Envía la lista de archivos del directorio actual al cliente a través de la conexión de datos.
+	 */
     protected void handleListCommand() {
     	Socket dataSocket = null;
     	PrintWriter dataOut = null;

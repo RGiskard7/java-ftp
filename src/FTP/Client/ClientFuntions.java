@@ -12,15 +12,32 @@ import org.apache.commons.net.ftp.FTPFile;
 import FTP.Util.Util;
 
 /**
+ * Implementación de las funciones del cliente FTP.
+ * <p>
+ * Esta clase encapsula todas las operaciones que el cliente puede realizar,
+ * como listar archivos, subir/descargar, crear/eliminar directorios, etc.
+ * Utiliza Apache Commons Net {@link FTPClient} para las comunicaciones FTP.
+ *
  * @author Eduardo Díaz Sánchez
+ * @version 1.0
  */
 public class ClientFuntions {
+	/** Cliente FTP de Apache Commons Net */
 	private FTPClient ftpClient;
-	
+
+	/**
+	 * Constructor que inicializa las funciones del cliente.
+	 *
+	 * @param ftpClient Instancia del cliente FTP configurado
+	 */
 	public ClientFuntions(FTPClient ftpClient) {
 		this.ftpClient = ftpClient;
 	}
-	
+
+	/**
+	 * Lista los archivos y directorios del directorio actual en el servidor.
+	 * Muestra información formateada incluyendo tipo, tamaño, fecha y nombre.
+	 */
 	public void listFiles() {   
 		FTPFile[] files;
 		String type, size, date, name;

@@ -12,40 +12,83 @@ import java.net.Socket;
 import FTP.Util.Util;
 
 /**
+ * Manejador de conexiones de clientes FTP.
+ * <p>
+ * Esta clase implementa {@link Runnable} para permitir el manejo concurrente de múltiples
+ * clientes FTP. Cada instancia maneja una conexión de cliente completa, incluyendo:
+ * <ul>
+ *   <li>Autenticación de usuarios</li>
+ *   <li>Procesamiento de comandos FTP</li>
+ *   <li>Gestión de conexiones de datos (ACTIVE/PASSIVE)</li>
+ *   <li>Control de acceso basado en roles (RBAC)</li>
+ * </ul>
+ *
  * @author Eduardo Díaz Sánchez
+ * @version 1.0
  */
 public class FtpClientHandler implements Runnable {
+	/** Socket de control para comandos FTP */
 	private Socket controlSocket;
+
+	/** Modo de conexión actual: "ACTIVE" o "PASSIVE" */
 	private String connectionMode;
-	
-	// Para el modo pasivo
+
+	/** Socket del servidor para modo pasivo */
 	private ServerSocket passiveDataSocket;
+
+	/** Dirección IP para conexión de datos en modo pasivo */
 	private String passiveDataIp;
+
+	/** Puerto para conexión de datos en modo pasivo */
 	private Integer passiveDataPort;
 
-	// Para el modo pasivo
+	/** Socket de datos para modo activo */
 	private Socket activeDataSocket;
+
+	/** Dirección IP del cliente para modo activo */
 	private String activeDataIp;
+
+	/** Puerto del cliente para modo activo */
 	private Integer activeDataPort;
-	
-	// Flujos de comunicación
+
+	/** BufferedReader para leer comandos del cliente */
 	private BufferedReader in;
+
+	/** PrintWriter para enviar respuestas al cliente */
 	private PrintWriter out;
-	
+
+	/** Buffer temporal para almacenar nombre de usuario durante autenticación */
 	private String usernameBuffer = null;
+
+	/** Usuario actualmente autenticado */
 	private User currentUser;
+
+	/** Último comando recibido */
 	private String command;
-	
+
+	/** Instancia de funciones del servidor FTP */
 	private ServerFunctions serverFunctions;
+
+	/** Directorio de trabajo actual del cliente */
 	private String currentDirectory;
 
+	/**
+	 * Constructor del manejador de cliente.
+	 *
+	 * @param controlSocket Socket de control establecido con el cliente
+	 * @throws IOException Si ocurre un error al inicializar el manejador
+	 */
 	public FtpClientHandler(Socket controlSocket) throws IOException {
 		this.controlSocket = controlSocket;
 		currentUser = new User();
 		serverFunctions = new ServerFunctions(this);
 		currentDirectory = JavaFtpServer.dirRoot;
 	}
-	
+
+	/**
+	 * Método principal de ejecución del hilo.
+	 * Procesa los comandos FTP del cliente en un bucle hasta que se cierre la conexión.
+	 */
 	@Override
 	public void run() {
 		System.out.println("\n[SOLICITUD RECIBIDA]");
@@ -161,15 +204,30 @@ public class FtpClientHandler implements Runnable {
 			}
 		}
 	}
-	
+
+	/**
+	 * Obtiene el directorio de trabajo actual del cliente.
+	 *
+	 * @return Ruta del directorio actual
+	 */
 	public String getCurrentDirectory() {
 	    return currentDirectory;
 	}
 
+	/**
+	 * Establece el directorio de trabajo actual del cliente.
+	 *
+	 * @param currentDirectory Nueva ruta del directorio
+	 */
 	public void setCurrentDirectory(String currentDirectory) {
 	    this.currentDirectory = currentDirectory;
 	}
 
+	/**
+	 * Maneja el comando USER para iniciar la autenticación.
+	 *
+	 * @param usernameInput Nombre de usuario proporcionado
+	 */
 	private void handleUserCommand(String usernameInput) {
 	    if (userExists(usernameInput)) {
 	    	usernameBuffer = usernameInput; // Guardamos el usuario temporalmente
@@ -178,7 +236,12 @@ public class FtpClientHandler implements Runnable {
 	        sendReply(530, "Authentication failed.");
 	    }
 	}
-	
+
+	/**
+	 * Maneja el comando PASS para completar la autenticación.
+	 *
+	 * @param passwordInput Contraseña proporcionada
+	 */
 	private void handlePassCommand(String passwordInput) {
 	    if (usernameBuffer == null) {
 	        sendReply(530, "Authentication failed."); // No se ha enviado USER antes
@@ -194,7 +257,11 @@ public class FtpClientHandler implements Runnable {
 
 	    usernameBuffer = null; // Resetear el estado después de PASS
 	}
-	
+
+	/**
+	 * Maneja el comando PASV para configurar modo pasivo.
+	 * El servidor abre un puerto y espera que el cliente se conecte.
+	 */
 	private void handlePasvCommand() {
 		int p1, p2;
 		
@@ -216,7 +283,13 @@ public class FtpClientHandler implements Runnable {
 			sendReply(425, "Can't open data connection");
 		}
 	}
-	
+
+	/**
+	 * Maneja el comando PORT para configurar modo activo.
+	 * El cliente proporciona su dirección IP y puerto para la conexión de datos.
+	 *
+	 * @param address Cadena con formato "h1,h2,h3,h4,p1,p2" donde h es IP y p es puerto
+	 */
 	private void handlePortCommand(String address) {
 		String[] addressParts;
 		
@@ -235,7 +308,14 @@ public class FtpClientHandler implements Runnable {
 		
 		System.out.println("Modo activo configurado en IP " + activeDataIp + " y puerto " + activeDataPort);
 	}
-	
+
+	/**
+	 * Obtiene el socket de datos según el modo de conexión configurado.
+	 * En modo PASSIVE acepta la conexión del cliente, en ACTIVE se conecta al cliente.
+	 *
+	 * @return Socket de datos establecido
+	 * @throws IOException Si no se puede establecer la conexión de datos
+	 */
     protected Socket getDataSocket() throws IOException {
 		synchronized (this) { // Evita condiciones de carrera si varios hilos acceden a la conexión
 	        if (connectionMode.equals("PASSIVE")) {
@@ -261,6 +341,10 @@ public class FtpClientHandler implements Runnable {
 		}
     }
 
+	/**
+	 * Cierra el socket de datos y libera recursos.
+	 * Maneja tanto modo ACTIVE como PASSIVE de forma segura.
+	 */
     protected void closeDataSocket() {
         synchronized (this) {  // Evita problemas si varios hilos acceden al cierre de sockets
             try {
@@ -278,7 +362,13 @@ public class FtpClientHandler implements Runnable {
             }
         }
     }
-    
+
+	/**
+	 * Verifica si un nombre de usuario existe en el archivo de usuarios.
+	 *
+	 * @param usernameInput Nombre de usuario a verificar
+	 * @return true si el usuario existe, false en caso contrario
+	 */
 	private boolean userExists(String usernameInput) {
 		try (FileInputStream inputStream = new FileInputStream(new File(JavaFtpServer.USERS_FILE));
 				InputStreamReader reader = new InputStreamReader(inputStream);
@@ -297,7 +387,15 @@ public class FtpClientHandler implements Runnable {
 		
 	    return false;
 	}
- 
+
+	/**
+	 * Autentica un usuario verificando nombre de usuario y contraseña.
+	 * Si la autenticación es exitosa, establece el usuario actual con su perfil.
+	 *
+	 * @param usernameInput Nombre de usuario
+	 * @param passwordInput Contraseña
+	 * @return true si la autenticación es exitosa, false en caso contrario
+	 */
 	private boolean authenticateUser(String usernameInput, String passwordInput) {
 		try (FileInputStream inputStream = new FileInputStream(new File(JavaFtpServer.USERS_FILE));
 				InputStreamReader reader = new InputStreamReader(inputStream);
@@ -317,13 +415,24 @@ public class FtpClientHandler implements Runnable {
 
 		return false;
 	}
-	
 
-
+	/**
+	 * Envía una respuesta FTP al cliente.
+	 *
+	 * @param code Código de respuesta FTP (ej: 200, 530, etc.)
+	 * @param message Mensaje descriptivo de la respuesta
+	 */
 	protected void sendReply(int code, String message) {
 		out.printf("%d %s%n", code, message);
 	}
-	
+
+	/**
+	 * Verifica si el usuario actual tiene autorización para ejecutar un comando.
+	 * Comprueba si el perfil del usuario coincide con alguno de los perfiles permitidos.
+	 *
+	 * @param allowedProfiles Perfiles que tienen permiso para el comando
+	 * @return true si el usuario está autenticado y tiene el perfil adecuado, false en caso contrario
+	 */
 	private boolean checkAuthentication(UserProfile... allowedProfiles) {
 		if (currentUser == null || currentUser.getProfile() == null) {
 			Util.printRedColor("Usuario no autenticado");

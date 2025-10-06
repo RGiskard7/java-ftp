@@ -11,15 +11,39 @@ import java.util.concurrent.Executors;
 import FTP.Util.Util;
 
 /**
+ * Servidor FTP principal que maneja conexiones concurrentes de clientes.
+ * <p>
+ * Este servidor implementa el protocolo FTP con soporte para:
+ * <ul>
+ *   <li>Autenticación de usuarios basada en archivo</li>
+ *   <li>Control de acceso basado en roles (RBAC)</li>
+ *   <li>Modos de transferencia ACTIVE y PASSIVE</li>
+ *   <li>Manejo concurrente de múltiples clientes mediante ExecutorService</li>
+ * </ul>
+ *
  * @author Eduardo Díaz Sánchez
+ * @version 1.0
  */
 public class JavaFtpServer {
+	/** Directorio raíz desde donde el servidor sirve archivos */
 	protected static String dirRoot;
+
+	/** Directorio base para archivos del sistema */
 	protected static final String FILES_DIR = "files";
+
+	/** Directorio que contiene información de usuarios */
 	protected static final String USERS_DIR = FILES_DIR + File.separator + "users";
+
+	/** Archivo que almacena las credenciales de usuario */
 	protected static final String USERS_FILE = USERS_DIR + File.separator + "users.txt";
+
+	/** Puerto de control FTP estándar */
 	protected static final int CONTROL_PORT = 21;
-	
+
+	/**
+	 * Verifica la existencia de directorios y archivos necesarios para el servidor.
+	 * Valida que existan la carpeta 'files' y el archivo 'users.txt'.
+	 */
     private static void checkDirs() {
 		File dir = new File(FILES_DIR);
 		if (!dir.exists() || !dir.isDirectory()) {
@@ -33,7 +57,13 @@ public class JavaFtpServer {
 			return;
 		}
     }
-	
+
+	/**
+	 * Solicita y configura el directorio raíz del servidor FTP.
+	 * Valida que el directorio exista antes de aceptarlo.
+	 *
+	 * @param sc Scanner para leer entrada del usuario
+	 */
     private static void setRoot(Scanner sc) {
     	String input;
     	File file;
@@ -57,7 +87,15 @@ public class JavaFtpServer {
         	
         } while (!file.exists());
     }
-    
+
+	/**
+	 * Punto de entrada principal del servidor FTP.
+	 * Inicializa el servidor, muestra el banner, configura el directorio raíz
+	 * y comienza a escuchar conexiones de clientes en el puerto 21.
+	 *
+	 * @param args Argumentos de línea de comandos (no utilizados)
+	 * @throws InterruptedException Si el servidor es interrumpido
+	 */
     public static void main(String[] args) throws InterruptedException {
         ExecutorService execute = null;
         Scanner sc = new Scanner(System.in);

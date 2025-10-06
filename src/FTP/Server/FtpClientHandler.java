@@ -173,14 +173,24 @@ public class FtpClientHandler implements Runnable {
 				        break;
 				        
 				    case "CWD":
-				    	if (checkAuthentication(UserProfile.ADMINISTRADOR))
+				    	if (checkAuthentication(UserProfile.BASICO, UserProfile.INTERMEDIO, UserProfile.ADMINISTRADOR))
 				    		serverFunctions.handleChangeWorkingDirectory(commandArg);
 				        break;
-				        
-				    case "PWD":
+
+				    case "CDUP":
 				    	if (checkAuthentication(UserProfile.BASICO, UserProfile.INTERMEDIO, UserProfile.ADMINISTRADOR))
 				    		serverFunctions.handleChangeToParentDirectory();
 				        break;
+
+				    case "PWD":
+				    	if (checkAuthentication(UserProfile.BASICO, UserProfile.INTERMEDIO, UserProfile.ADMINISTRADOR))
+				    		serverFunctions.handlePrintWorkingDirectory();
+				        break;
+
+				    case "QUIT":
+				    	sendReply(221, "Goodbye.");
+				    	Util.printGreenColor("Cliente desconectado mediante comando QUIT");
+				    	return; // Salir del bucle y cerrar conexión
 
 					default:
 						Util.printRedColor("Comando desconocido recibido: " + command);

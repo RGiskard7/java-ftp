@@ -21,7 +21,7 @@ import FTP.Util.Util;
  * @author Eduardo Díaz Sánchez
  * @version 1.0
  */
-public class ClientFuntions {
+public class ClientFunctions {
 	/** Cliente FTP de Apache Commons Net */
 	private FTPClient ftpClient;
 
@@ -30,7 +30,7 @@ public class ClientFuntions {
 	 *
 	 * @param ftpClient Instancia del cliente FTP configurado
 	 */
-	public ClientFuntions(FTPClient ftpClient) {
+	public ClientFunctions(FTPClient ftpClient) {
 		this.ftpClient = ftpClient;
 	}
 
@@ -38,15 +38,15 @@ public class ClientFuntions {
 	 * Lista los archivos y directorios del directorio actual en el servidor.
 	 * Muestra información formateada incluyendo tipo, tamaño, fecha y nombre.
 	 */
-	public void listFiles() {   
+	public void listFiles() {
 		FTPFile[] files;
 		String type, size, date, name;
-		
+
 		try {
 			System.out.println("\nSolicitando listado de archivos...");
 
 			files = ftpClient.listFiles();
-			 
+
 			if (files.length == 0) {
 			    System.out.println("\nEl directorio está vacío");
 			}
@@ -59,37 +59,37 @@ public class ClientFuntions {
 	        for (FTPFile f : files) {
 	            type = f.isDirectory() ? "<DIR>" : "FILE";
 	            size = f.isDirectory() ? "-" : String.format("%,d", f.getSize());
-	            date = f.getTimestamp().getTime().toString(); // Convertir fecha a String
+	            date = f.getTimestamp() != null ? f.getTimestamp().getTime().toString() : "N/A";
 	            name = f.getName();
 
 	            // Imprimir fila formateada
 	            System.out.printf("%-12s %-10s %-15s %-20s\n", type, size, date, name);
 	        }
-	        
+
 		} catch (IOException e) {
 			Util.printRedColor("\nError al listar los archivos del servidor");
 		}
 	}
-	
+
 	public void uploadFile(Scanner sc) {
 		File localFile;
 		String localFilePath, remoteFileName;
-		
+
 	    try {
 	        System.out.println("\nIngrese la ruta completa del archivo a subir");
 			System.out.print(":> ");
 	        localFilePath = sc.nextLine().trim();
 	        localFile = new File(localFilePath);
-	        
+
 	        if (!localFile.exists() || !localFile.isFile()) {
 	        	Util.printRedColor("\nError: Archivo no encontrado o ruta incorrecta");
 	            return;
 	        }
-	        
+
 	        System.out.println("\nIngrese el nombre con el que se guardará en el servidor");
 			System.out.print(":> ");
 	        remoteFileName = sc.nextLine().trim();
-	        
+
 	        // Abrir el stream local y usar storeFile para enviar el contenido.
 	        try (FileInputStream input = new FileInputStream(localFile)) {
 	            boolean result = ftpClient.storeFile(remoteFileName, input);
@@ -104,18 +104,18 @@ public class ClientFuntions {
 	    	Util.printRedColor("\nError: " + e.getMessage());
 	    }
 	}
-	
+
 	public void downloadFile(Scanner sc) {
 	    System.out.println("\nIngrese el nombre del archivo a descargar");
 	    System.out.print(":> ");
 	    String remoteFileName = sc.nextLine().trim();
-	    
+
 	    System.out.println("\nIngrese la ruta local (incluyendo nombre de archivo) donde se guardará el archivo");
 	    System.out.print(":> ");
 	    String localFilePath = sc.nextLine().trim();
-	    
+
 	    File localFile = new File(localFilePath);
-	    
+
 	    try (FileOutputStream fos = new FileOutputStream(localFile)) {
 	        // ftpClient.retrieveFile envía internamente el comando RETR y gestiona la conexión de datos
 	        boolean result = ftpClient.retrieveFile(remoteFileName, fos);
@@ -124,15 +124,15 @@ public class ClientFuntions {
 	        } else {
 	        	Util.printRedColor("\nError en la descarga del archivo: " + ftpClient.getReplyString());
 	        }
-	        
+
 	    } catch (IOException e) {
 	        System.out.println("\nError: " + e.getMessage());
 	    }
 	}
-	
+
 	public void deleteFile(Scanner sc) {
 		String remoteFileName;
-		
+
 	    System.out.println("\nIngrese el nombre del archivo a eliminar");
 	    System.out.print(":> ");
 	    remoteFileName = sc.nextLine().trim();
@@ -153,7 +153,7 @@ public class ClientFuntions {
 	    	Util.printRedColor("\nError: " + e.getMessage());
 	    }
 	}
-	
+
 	public void createDirectory(Scanner sc) {
 	    System.out.println("\nIngrese el nombre del directorio a crear");
 	    System.out.print(":> ");
@@ -176,10 +176,10 @@ public class ClientFuntions {
 	    	Util.printRedColor("\nError: " + e.getMessage());
 	    }
 	}
-	
+
 	public void deleteDirectory(Scanner sc) {
 		String remoteDirName;
-		
+
 	    System.out.println("\nIngrese el nombre del directorio a eliminar");
 	    System.out.print(":> ");
 	    remoteDirName = sc.nextLine().trim();
@@ -204,7 +204,7 @@ public class ClientFuntions {
 
 	public void renameFile(Scanner sc) {
 		String oldName, newName;
-		
+
 	    System.out.println("\nIngrese el nombre del archivo o directorio a renombrar");
 	    System.out.print(":> ");
 	    oldName = sc.nextLine().trim();
@@ -230,25 +230,25 @@ public class ClientFuntions {
 	    	Util.printRedColor("\nError: " + e.getMessage());
 	    }
 	}
-	
+
 	public void changeWorkingDirectory(Scanner sc) {
 		String dir;
-		
+
 	    System.out.println("\nIngrese el directorio al que desea cambiar:");
 	    System.out.print(":> ");
 	    dir = sc.nextLine().trim();
-	    
+
 	    if (dir.isEmpty()) {
 	    	Util.printRedColor("\nError: El nombre del directorio no puede estar vacío.");
 	        return;
 	    }
-	    
+
 	    try {
-	    	
+
 	        // ftpClient.changeWorkingDirectory envía el comando CWD al servidor
 	        boolean success = ftpClient.changeWorkingDirectory(dir);
 	        showServerReply(ftpClient);
-	        
+
 	        if (success) {
 	        	Util.printGreenColor("\nDirectorio cambiado a: " + ftpClient.printWorkingDirectory());
 	        } else {
@@ -258,7 +258,7 @@ public class ClientFuntions {
 	    	Util.printRedColor("\nError: " + e.getMessage());
 	    }
 	}
-	
+
 	public void changeToParentDirectory() {
 	    try {
 	        boolean success = ftpClient.changeToParentDirectory();
@@ -271,7 +271,7 @@ public class ClientFuntions {
 	    	Util.printRedColor("\nError: " + e.getMessage());
 	    }
 	}
-	
+
     private static void showServerReply(FTPClient ftpClient) {
         String[] replies = ftpClient.getReplyStrings();
         if (replies != null && replies.length > 0) {

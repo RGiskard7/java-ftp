@@ -36,17 +36,17 @@ public class JavaFtpClient {
 	 */
 	public static void main(String[] args) {
 		FTPClient ftpClient;
-		ClientFuntions clientFuntions;
+		ClientFunctions clientFunctions;
 		String[] hostname, userCredentials;
 		int replyCode, dataPort, option;
 		boolean login;
 		String mode;
 		boolean exit = false;
-		
+
 		System.out.println("Cliente FTP iniciado");
-		
+
 		ftpClient = new FTPClient();
-		clientFuntions = new ClientFuntions(ftpClient);
+		clientFunctions = new ClientFunctions(ftpClient);
 		
 		try (Scanner sc = new Scanner(System.in)) {
 			hostname = captureHostname(sc);
@@ -93,47 +93,47 @@ public class JavaFtpClient {
 				switch (option) {
 					case 1:
 						System.out.println("\nListar archivos");
-						clientFuntions.listFiles();
+						clientFunctions.listFiles();
 						break;
-						
+
 					case 2:
 					    System.out.println("\nSubir archivo");
-					    clientFuntions.uploadFile(sc);
+					    clientFunctions.uploadFile(sc);
 						break;
-						
+
 					case 3:
 					    System.out.println("\nDescargar archivo");
-					    clientFuntions.downloadFile(sc);
+					    clientFunctions.downloadFile(sc);
 						break;
-						
+
 					case 4:
 					    System.out.println("\nEliminar archivo");
-					    clientFuntions.deleteFile(sc);
+					    clientFunctions.deleteFile(sc);
 						break;
-						
+
 					case 5:
 					    System.out.println("\nCrear directorio");
-					    clientFuntions.createDirectory(sc);
+					    clientFunctions.createDirectory(sc);
 					    break;
 
 					case 6:
 					    System.out.println("\nEliminar directorio");
-					    clientFuntions.deleteDirectory(sc);
+					    clientFunctions.deleteDirectory(sc);
 					    break;
-						
+
 					case 7:
 					    System.out.println("\nRenombrar archivo/directorio");
-					    clientFuntions.renameFile(sc);
+					    clientFunctions.renameFile(sc);
 					    break;
-						
+
 					case 8:
 					    System.out.println("\nCambiar directorio de trabajo");
-					    clientFuntions.changeWorkingDirectory(sc);
+					    clientFunctions.changeWorkingDirectory(sc);
 						break;
-						
+
 					case 9:
 					    System.out.println("\nCambiar al directorio superior");
-					    clientFuntions.changeToParentDirectory();
+					    clientFunctions.changeToParentDirectory();
 						break;
 						
 					case 10:

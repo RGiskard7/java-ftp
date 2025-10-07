@@ -12,23 +12,23 @@ Una implementación personalizada del Protocolo de Transferencia de Archivos (FT
 
 ## Índice
 
-  - [Resumen](https://www.google.com/search?q=%23resumen)
-  - [Características](https://www.google.com/search?q=%23caracter%C3%ADsticas)
-  - [Arquitectura](https://www.google.com/search?q=%23arquitectura)
-  - [Prerrequisitos](https://www.google.com/search?q=%23prerrequisitos)
-  - [Instalación](https://www.google.com/search?q=%23instalaci%C3%B3n)
-  - [Inicio Rápido](https://www.google.com/search?q=%23inicio-r%C3%A1pido)
-  - [Uso](https://www.google.com/search?q=%23uso)
-      - [Ejecutar el Servidor](https://www.google.com/search?q=%23ejecutar-el-servidor)
-      - [Ejecutar el Cliente](https://www.google.com/search?q=%23ejecutar-el-cliente)
-  - [Configuración](https://www.google.com/search?q=%23configuraci%C3%B3n)
-  - [Modos de Transferencia FTP](https://www.google.com/search?q=%23modos-de-transferencia-ftp)
-  - [Control de Acceso Basado en Roles](https://www.google.com/search?q=%23control-de-acceso-basado-en-roles)
-  - [Seguridad](https://www.google.com/search?q=%23seguridad)
-  - [Solución de Problemas](https://www.google.com/search?q=%23soluci%C3%B3n-de-problemas)
-  - [Contribuciones](https://www.google.com/search?q=%23contribuciones)
-  - [Licencia](https://www.google.com/search?q=%23licencia)
-  - [Agradecimientos](https://www.google.com/search?q=%23agradecimientos)
+  - [Resumen](#resumen)
+  - [Características](#características)
+  - [Arquitectura](#arquitectura)
+  - [Prerrequisitos](#prerrequisitos)
+  - [Instalación](#instalación)
+  - [Inicio Rápido](#inicio-rápido)
+  - [Uso](#uso)
+      - [Ejecutar el Servidor](#ejecutar-el-servidor)
+      - [Ejecutar el Cliente](#ejecutar-el-cliente)
+  - [Configuración](#configuración)
+  - [Modos de Transferencia FTP](#modos-de-transferencia-ftp)
+  - [Control de Acceso Basado en Roles](#control-de-acceso-basado-en-roles)
+  - [Seguridad](#seguridad)
+  - [Solución de Problemas](#solución-de-problemas)
+  - [Contribuciones](#contribuciones)
+  - [Licencia](#licencia)
+  - [Agradecimientos](#agradecimientos)
 
 -----
 
@@ -46,10 +46,10 @@ Este proyecto es una implementación educativa completa del Protocolo de Transfe
 
 | Componente | Archivo | Descripción |
 |-----------|------|-------------|
-| **Servidor** | [JavaFtpServer.java](https://www.google.com/search?q=src/FTP/Server/JavaFtpServer.java) | Servidor FTP multihilo que soporta los modos de transferencia ACTIVO y PASIVO. |
-| **Cliente de Consola** | [JavaFtpClient.java](https://www.google.com/search?q=src/FTP/Client/JavaFtpClient.java) | Cliente FTP interactivo de línea de comandos usando Apache Commons Net. |
-| **Cliente GUI** | [ClientGUI.java](https://www.google.com/search?q=src/FTP/Client/ClientGUI.java) | Interfaz gráfica de estilo terminal retro ámbar para operaciones FTP. |
-| **Dependencia** | `commons-net-3.11.1.jar` | Biblioteca Apache Commons Net (incluida en [lib/](https://www.google.com/search?q=lib/)). |
+| **Servidor** | [JavaFtpServer.java](src/FTP/Server/JavaFtpServer.java) | Servidor FTP multihilo que soporta los modos de transferencia ACTIVO y PASIVO. |
+| **Cliente de Consola** | [JavaFtpClient.java](src/FTP/Client/JavaFtpClient.java) | Cliente FTP interactivo de línea de comandos usando Apache Commons Net. |
+| **Cliente GUI** | [ClientGUI.java](src/FTP/Client/ClientGUI.java) | Interfaz gráfica de estilo terminal retro ámbar para operaciones FTP. |
+| **Dependencia** | `commons-net-3.11.1.jar` | Biblioteca Apache Commons Net (incluida en [lib/](lib/)). |
 
 ### ¿Qué Aprenderás?
 
@@ -126,8 +126,8 @@ java-ftp/
 │   └── users/
 │       └── users.txt                   # Base de datos de credenciales de usuario
 ├── bin/                                # Clases compiladas (generado)
-├── LICENSE
-└── README.md
+├── [LICENSE](LICENSE)
+└── [README.md](README.md)
 ```
 
 -----
@@ -248,7 +248,7 @@ Ahora estás listo para ejecutar el servidor y el cliente. Procede a [Inicio Rá
 
 ## Inicio Rápido
 
-> 💡 **¿Primera vez?** Consulta [QUICK\_START.md](https://www.google.com/search?q=QUICK_START.md) para una guía visual paso a paso.
+> 💡 **¿Primera vez?** Consulta [QUICK_START.md](QUICK_START.md) para una guía visual paso a paso.
 
 Sigue estos pasos para poner en marcha el servidor y el cliente FTP:
 
@@ -362,7 +362,7 @@ Deberías ver:
 
 | Problema | Solución |
 |---|---|
-| `Address already in use` | El puerto 21 está ocupado. Cambia `CONTROL_PORT` en [JavaFtpServer.java:41](https://www.google.com/search?q=src/FTP/Server/JavaFtpServer.java%23L41) a `2121`. |
+| `Address already in use` | El puerto 21 está ocupado. Cambia `CONTROL_PORT` en [JavaFtpServer.java](src/FTP/Server/JavaFtpServer.java) línea 41 a `2121`. |
 | `Permission denied` (Linux/macOS) | Ejecuta el servidor con `sudo` o usa un puerto \>1024. |
 | `ClassNotFoundException` | Verifica que `commons-net-3.11.1.jar` exista en el directorio `lib/`. |
 | `Connection refused` | Asegúrate de que el servidor esté en ejecución y escuchando en el puerto correcto. |
@@ -373,7 +373,7 @@ Deberías ver:
   - Sube un archivo usando la opción `[2]` en la consola o el botón **UPLOAD** en la GUI.
   - Navega por los directorios con `[8]` o haciendo doble clic en las carpetas en la GUI.
   - Prueba diferentes cuentas de usuario con distintos niveles de permiso.
-  - Lee la sección de [Uso](https://www.google.com/search?q=%23uso) para operaciones detalladas.
+  - Lee la sección de [Uso](#uso) para operaciones detalladas.
 
 -----
 
@@ -468,7 +468,7 @@ java -cp "bin:lib/commons-net-3.11.1.jar" FTP.Server.JavaFtpServer
     sudo ufw allow 1024:65535/tcp  # Puertos para modo pasivo
     ```
 
-**Nota**: En sistemas Unix, vincularse al puerto 21 requiere privilegios de root/sudo. Para desarrollo/pruebas, modifica `CONTROL_PORT` en [JavaFtpServer.java:41](https://www.google.com/search?q=src/FTP/Server/JavaFtpServer.java%23L41) a un puerto \>1024 (ej. `2121`).
+**Nota**: En sistemas Unix, vincularse al puerto 21 requiere privilegios de root/sudo. Para desarrollo/pruebas, modifica `CONTROL_PORT` en [JavaFtpServer.java](src/FTP/Server/JavaFtpServer.java) línea 41 a un puerto \>1024 (ej. `2121`).
 
 ### Ejecutar el Cliente
 
@@ -673,7 +673,7 @@ javac -d bin -cp "lib/commons-net-3.11.1.jar" src/FTP/**/*.java
 
 ¡Las contribuciones son bienvenidas\! Por favor, siéntete libre de enviar:
 
-  - Informes de errores a través de [suspicious link removed].
+  - Informes de errores a través de issues en el repositorio.
   - Mejoras de funcionalidades a través de Pull Requests.
   - Mejoras en la documentación.
   - Informes de vulnerabilidades de seguridad (por favor, divúlguelos de manera responsable).
@@ -699,7 +699,7 @@ javac -d bin -cp "lib/commons-net-3.11.1.jar" src/FTP/**/*.java
 
 ## Licencia
 
-Este proyecto está licenciado bajo la **Licencia MIT** — consulta el archivo [LICENSE](https://www.google.com/search?q=LICENSE) para más detalles.
+Este proyecto está licenciado bajo la **Licencia MIT** — consulta el archivo [LICENSE](LICENSE) para más detalles.
 
 -----
 

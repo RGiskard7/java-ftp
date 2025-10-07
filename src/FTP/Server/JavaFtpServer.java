@@ -100,23 +100,22 @@ public class JavaFtpServer {
         ExecutorService execute = null;
         Scanner sc = new Scanner(System.in);
 
-        
         System.out.println(" _____                 _     _              _____ _____ _____");
-		System.out.println("/  ___|               (_)   | |            |  ___|_   _| ___ \\");
-		System.out.println("\\ `--.  ___ _ ____   ___  __| | ___  _ __  | |_    | | | |_/ /");
-		System.out.println(" `--. \\/ _ \\ '__\\ \\ / / |/ _` |/ _ \\| '__| |  _|   | | |  __/ ");
-		System.out.println("/\\__/ /  __/ |   \\ V /| | (_| | (_) | |    | |     | | | |    ");
-		System.out.println("\\____/ \\___|_|    \\_/ |_|\\__,_|\\___/|_|    \\_|     \\_/ \\_|    ");
-		System.out.println("\nBy Eduardo Díaz");
-		
-		checkDirs();
-		setRoot(sc);
-        
+        System.out.println("/  ___|               (_)   | |            |  ___|_   _| ___ \\");
+        System.out.println("\\ `--.  ___ _ ____   ___  __| | ___  _ __  | |_    | | | |_/ /");
+        System.out.println(" `--. \\/ _ \\ '__\\ \\ / / |/ _` |/ _ \\| '__| |  _|   | | |  __/ ");
+        System.out.println("/\\__/ /  __/ |   \\ V /| | (_| | (_) | |    | |     | | | |    ");
+        System.out.println("\\____/ \\___|_|    \\_/ |_|\\__,_|\\___/|_|    \\_|     \\_/ \\_|    ");
+        System.out.println("\nBy Eduardo Díaz");
+
+        checkDirs();
+        setRoot(sc);
+
         execute = Executors.newCachedThreadPool();
-       
+
         try (ServerSocket server = new ServerSocket(CONTROL_PORT)) {
             Util.printGreenColor("\nServidor FTP iniciado en el puerto de control " + CONTROL_PORT);
-            
+
             while (true) {
                 Socket client = server.accept();
                 execute.execute(new Thread(new FtpClientHandler(client)));
@@ -127,6 +126,6 @@ public class JavaFtpServer {
         } catch (Exception e) {
 			Util.printRedColor("\nError: " + e.getMessage());
 			e.printStackTrace();
-		} 
+		}
     }
 }

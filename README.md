@@ -45,7 +45,7 @@ Este proyecto es una implementación educativa completa del Protocolo de Transfe
 ### Vista Previa de la Interfaz
 
 <p align="center">
-  <img src="docs/images/img_1.png" alt="Cliente FTP GUI - Interfaz Retro Ámbar" width="800">
+  <img src="static/images/img_1.png" alt="Cliente FTP GUI - Interfaz Retro Ámbar" width="800">
   <br>
   <em>Cliente FTP con interfaz gráfica estilo terminal retro ámbar</em>
 </p>

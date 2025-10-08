@@ -71,9 +71,10 @@ public class ServerFunctions {
 		}
 
 		// Rechazar nombres que contengan path separators o caracteres peligrosos
+		// Nota: & se permite ya que solo es peligroso en shells, no en filesystems
 		if (filename.contains("..") || filename.contains("/") || filename.contains("\\") ||
 			filename.contains("\0") || filename.contains("|") || filename.contains(">") ||
-			filename.contains("<") || filename.contains("&")) {
+			filename.contains("<")) {
 			return false;
 		}
 

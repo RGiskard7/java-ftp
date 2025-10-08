@@ -50,13 +50,16 @@ public class JavaFtpClient {
 		
 		try (Scanner sc = new Scanner(System.in)) {
 			hostname = captureHostname(sc);
-		
+
+			// Configurar encoding UTF-8 para soportar acentos, ñ, etc.
+			ftpClient.setControlEncoding("UTF-8");
+
 			ftpClient.connect(hostname[0], Integer.parseInt(hostname[1]));
-			replyCode = ftpClient.getReplyCode();			
+			replyCode = ftpClient.getReplyCode();
 			if (!FTPReply.isPositiveCompletion(replyCode)) {
 				throw new IOException("Error de conexión: " + replyCode);
 			}
-			
+
 			System.out.println("\n" + ftpClient.getReplyString());
 
 			userCredentials = inputUserCredentials(sc);
@@ -67,7 +70,11 @@ public class JavaFtpClient {
 			} 
 			
 			Util.printGreenColor("\n" + ftpClient.getReplyString());
-			
+
+			// Configurar modo binario (crítico para PDFs, ZIPs, imágenes)
+			ftpClient.setFileType(org.apache.commons.net.ftp.FTP.BINARY_FILE_TYPE);
+			Util.printGreenColor("\nModo de transferencia binaria activado");
+
 			mode = selectMode(sc);
 			if (mode.equals("PASSIVE")) {
 				handlerPasiveMode(ftpClient, sc);
@@ -76,7 +83,7 @@ public class JavaFtpClient {
 			} else {
 				Util.printRedColor("Error: Modo de conexión elegido desconocido");
 			}
-			
+
 			ftpClient.sendCommand("SYST"); // Llamamos a SYST manualmente
 			System.out.println("\nSYST Response: " + ftpClient.getReplyString());
 			
@@ -234,7 +241,7 @@ public class JavaFtpClient {
 	 * @return "PASSIVE" o "ACTIVE"
 	 */
 	private static String selectMode(Scanner sc) {
-		String mode = "PASIVE";
+		String mode = "PASSIVE";
 		String input = null;
 		
 		do {

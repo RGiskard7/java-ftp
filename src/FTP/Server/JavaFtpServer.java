@@ -99,6 +99,8 @@ public class JavaFtpServer {
     public static void main(String[] args) throws InterruptedException {
         ExecutorService execute = null;
         Scanner sc = new Scanner(System.in);
+        ServerConfig config = new ServerConfig();
+        int serverPort = CONTROL_PORT;
 
         System.out.println(" _____                 _     _              _____ _____ _____");
         System.out.println("/  ___|               (_)   | |            |  ___|_   _| ___ \\");
@@ -108,23 +110,48 @@ public class JavaFtpServer {
         System.out.println("\\____/ \\___|_|    \\_/ |_|\\__,_|\\___/|_|    \\_|     \\_/ \\_|    ");
         System.out.println("\nBy Eduardo Díaz");
 
-        checkDirs();
-        setRoot(sc);
+        // Inicializar sistema de logging
+        FTP.Util.FileLogger.initialize();
+        FTP.Util.FileLogger.info("========== SERVIDOR FTP INICIADO ==========");
+
+        // Intentar cargar configuración desde archivo
+        try {
+            config.loadFromFile("server.properties");
+            Util.printGreenColor("\n✓ Configuración cargada desde server.properties");
+            serverPort = config.getControlPort();
+
+            // Si hay directorio raíz en config, usarlo
+            if (!config.getRootDirectory().isEmpty()) {
+                dirRoot = config.getRootDirectory();
+                Util.printGreenColor("✓ Directorio raíz: " + dirRoot);
+            } else {
+                checkDirs();
+                setRoot(sc);
+            }
+        } catch (IOException e) {
+            Util.printRedColor("\n⚠ No se pudo cargar server.properties, usando configuración por defecto");
+            checkDirs();
+            setRoot(sc);
+        }
 
         execute = Executors.newCachedThreadPool();
 
-        try (ServerSocket server = new ServerSocket(CONTROL_PORT)) {
-            Util.printGreenColor("\nServidor FTP iniciado en el puerto de control " + CONTROL_PORT);
+        try (ServerSocket server = new ServerSocket(serverPort)) {
+            Util.printGreenColor("\nServidor FTP iniciado en el puerto de control " + serverPort);
+            FTP.Util.FileLogger.info("Servidor escuchando en puerto " + serverPort);
 
             while (true) {
                 Socket client = server.accept();
+                FTP.Util.FileLogger.logConnection(client.getInetAddress().toString());
                 execute.execute(new Thread(new FtpClientHandler(client)));
             }
 
         } catch (IOException e) {
         	Util.printRedColor("\nError en el servidor: " + e.getMessage());
+        	FTP.Util.FileLogger.error("Error en servidor: " + e.getMessage());
         } catch (Exception e) {
 			Util.printRedColor("\nError: " + e.getMessage());
+			FTP.Util.FileLogger.error("Error inesperado: " + e.getMessage());
 			e.printStackTrace();
 		}
     }

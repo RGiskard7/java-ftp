@@ -42,6 +42,14 @@ Este proyecto es una implementación educativa completa del Protocolo de Transfe
   - **Desarrollo de GUI**: Interfaz retro basada en Swing con actualizaciones en tiempo real.
   - **Patrones de Seguridad**: Control de acceso basado en roles (RBAC) y sistemas de autenticación.
 
+### Vista Previa de la Interfaz
+
+<p align="center">
+  <img src="docs/images/img_1.png" alt="Cliente FTP GUI - Interfaz Retro Ámbar" width="800">
+  <br>
+  <em>Cliente FTP con interfaz gráfica estilo terminal retro ámbar</em>
+</p>
+
 ### Componentes
 
 | Componente | Archivo | Descripción |
@@ -93,12 +101,14 @@ Al estudiar y ejecutar este proyecto, entenderás:
 
   - **Diseño Retro**: Estética de terminal ámbar inspirada en los años 80.
   - **Tabla de Archivos**: Visualización con tipo de archivo, nombre, tamaño y fecha de modificación.
-  - **Botones Dedicados**: Acceso con un clic a 10 operaciones FTP.
+  - **Botones Dedicados**: Acceso con un clic a 10 operaciones FTP (REFRESH, UPLOAD, DOWNLOAD, DELETE, MKD, RMD, RENAME, CD, CDUP, PWD).
   - **Registro en Tiempo Real**: Mensajes codificados por colores (verde=éxito, rojo=error, amarillo=info).
   - **Tipografía Monoespaciada**: Fuente Consolas para una apariencia retro auténtica.
-  - Carga/descarga de archivos con feedback de progreso.
-  - Navegación y manipulación de directorios.
-  - Operaciones de renombrar y eliminar archivos/directorios.
+  - **Barras de Progreso**: Indicadores visuales en tiempo real para transferencias de archivos.
+  - **Selección Múltiple**: Operaciones batch con Ctrl+Click o Shift+Click.
+  - **Navegación Intuitiva**: Doble clic en directorios para navegar.
+  - **Encoding UTF-8**: Soporte completo para nombres con acentos, ñ y caracteres especiales.
+  - **Transferencia Binaria**: Configuración automática para archivos PDF, ZIP, imágenes y binarios.
 
 -----
 

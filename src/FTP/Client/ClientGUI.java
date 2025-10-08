@@ -7,7 +7,9 @@ import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.awt.event.*;
 import java.io.*;
-import org.apache.commons.net.ftp.*;
+import org.apache.commons.net.ftp.FTPClient;
+import org.apache.commons.net.ftp.FTPFile;
+import org.apache.commons.net.ftp.FTPReply;
 
 /**
  * Interfaz gráfica retro para el cliente FTP.
@@ -243,6 +245,34 @@ public class ClientGUI extends JFrame {
         fileTable = new JTable(tableModel);
         styleTable(fileTable);
 
+        // Habilitar selección múltiple
+        fileTable.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
+
+        // Doble clic para cambiar directorio
+        fileTable.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                if (e.getClickCount() == 2 && fileTable.getSelectedRow() != -1) {
+                    int row = fileTable.getSelectedRow();
+                    String type = (String) tableModel.getValueAt(row, 0);
+                    if ("<DIR>".equals(type)) {
+                        String dirname = (String) tableModel.getValueAt(row, 1);
+                        try {
+                            boolean success = ftpClient.changeWorkingDirectory(dirname);
+                            if (success) {
+                                log("[SUCCESS] Changed to: " + dirname, RETRO_SUCCESS);
+                                listFiles();
+                            } else {
+                                log("[ERROR] CD failed", RETRO_ERROR);
+                            }
+                        } catch (IOException ex) {
+                            log("[ERROR] CD error: " + ex.getMessage(), RETRO_ERROR);
+                        }
+                    }
+                }
+            }
+        });
+
         JScrollPane scrollPane = new JScrollPane(fileTable);
         scrollPane.setBorder(BorderFactory.createLineBorder(RETRO_FG, 1));
         scrollPane.getViewport().setBackground(RETRO_BG);
@@ -469,6 +499,9 @@ public class ClientGUI extends JFrame {
 
             log("[INFO] Connecting to " + host + ":" + port + "...", RETRO_FG);
 
+            // Configurar encoding UTF-8 para soportar acentos, ñ, etc.
+            ftpClient.setControlEncoding("UTF-8");
+
             ftpClient.connect(host, port);
             int reply = ftpClient.getReplyCode();
 
@@ -489,6 +522,10 @@ public class ClientGUI extends JFrame {
             }
 
             log("[SUCCESS] Login successful", RETRO_SUCCESS);
+
+            // Configurar modo binario (crítico para PDFs, ZIPs, imágenes)
+            ftpClient.setFileType(org.apache.commons.net.ftp.FTP.BINARY_FILE_TYPE);
+            log("[INFO] Binary transfer mode enabled", RETRO_FG);
 
             // Configurar modo
             String mode = (String) modeCombo.getSelectedItem();
@@ -577,17 +614,63 @@ public class ClientGUI extends JFrame {
                 "Remote filename:", file.getName());
 
             if (remoteName != null && !remoteName.isEmpty()) {
-                try (FileInputStream fis = new FileInputStream(file)) {
-                    boolean success = ftpClient.storeFile(remoteName, fis);
-                    if (success) {
-                        log("[SUCCESS] File uploaded: " + remoteName, RETRO_SUCCESS);
-                        listFiles();
-                    } else {
-                        log("[ERROR] Upload failed", RETRO_ERROR);
+                // Crear diálogo de progreso
+                JDialog progressDialog = new JDialog(this, "Uploading...", true);
+                JProgressBar progressBar = new JProgressBar(0, 100);
+                progressBar.setStringPainted(true);
+                progressBar.setForeground(RETRO_SUCCESS);
+                progressBar.setBackground(RETRO_BG);
+
+                JPanel panel = new JPanel(new BorderLayout(10, 10));
+                panel.setBackground(RETRO_BG);
+                panel.setBorder(new EmptyBorder(20, 20, 20, 20));
+                panel.add(new JLabel("Uploading " + remoteName + "...") {{
+                    setForeground(RETRO_FG);
+                    setFont(new Font("Consolas", Font.BOLD, 12));
+                }}, BorderLayout.NORTH);
+                panel.add(progressBar, BorderLayout.CENTER);
+                progressDialog.add(panel);
+                progressDialog.setSize(400, 120);
+                progressDialog.setLocationRelativeTo(this);
+
+                // Ejecutar upload en thread separado
+                new Thread(() -> {
+                    try (FileInputStream fis = new FileInputStream(file)) {
+                        final long fileSize = file.length();
+
+                        ftpClient.setCopyStreamListener(new org.apache.commons.net.io.CopyStreamListener() {
+                            @Override
+                            public void bytesTransferred(long totalBytesTransferred, int bytesTransferred, long streamSize) {
+                                int percent = (int)((totalBytesTransferred * 100) / fileSize);
+                                SwingUtilities.invokeLater(() -> progressBar.setValue(percent));
+                            }
+
+                            @Override
+                            public void bytesTransferred(org.apache.commons.net.io.CopyStreamEvent event) {
+                                bytesTransferred(event.getTotalBytesTransferred(), event.getBytesTransferred(), event.getStreamSize());
+                            }
+                        });
+
+                        boolean success = ftpClient.storeFile(remoteName, fis);
+
+                        SwingUtilities.invokeLater(() -> {
+                            progressDialog.dispose();
+                            if (success) {
+                                log("[SUCCESS] File uploaded: " + remoteName, RETRO_SUCCESS);
+                                listFiles();
+                            } else {
+                                log("[ERROR] Upload failed", RETRO_ERROR);
+                            }
+                        });
+                    } catch (IOException e) {
+                        SwingUtilities.invokeLater(() -> {
+                            progressDialog.dispose();
+                            log("[ERROR] Upload error: " + e.getMessage(), RETRO_ERROR);
+                        });
                     }
-                } catch (IOException e) {
-                    log("[ERROR] Upload error: " + e.getMessage(), RETRO_ERROR);
-                }
+                }).start();
+
+                progressDialog.setVisible(true);
             }
         }
     }
@@ -603,6 +686,7 @@ public class ClientGUI extends JFrame {
 
         String filename = (String) tableModel.getValueAt(row, 1);
         String type = (String) tableModel.getValueAt(row, 0);
+        String sizeStr = (String) tableModel.getValueAt(row, 2);
 
         if ("<DIR>".equals(type)) {
             log("[ERROR] Cannot download a directory", RETRO_ERROR);
@@ -615,16 +699,72 @@ public class ClientGUI extends JFrame {
 
         if (result == JFileChooser.APPROVE_OPTION) {
             File localFile = chooser.getSelectedFile();
-            try (FileOutputStream fos = new FileOutputStream(localFile)) {
-                boolean success = ftpClient.retrieveFile(filename, fos);
-                if (success) {
-                    log("[SUCCESS] File downloaded: " + filename, RETRO_SUCCESS);
-                } else {
-                    log("[ERROR] Download failed", RETRO_ERROR);
+
+            // Crear diálogo de progreso
+            JDialog progressDialog = new JDialog(this, "Downloading...", true);
+            JProgressBar progressBar = new JProgressBar(0, 100);
+            progressBar.setStringPainted(true);
+            progressBar.setForeground(RETRO_SUCCESS);
+            progressBar.setBackground(RETRO_BG);
+
+            JPanel panel = new JPanel(new BorderLayout(10, 10));
+            panel.setBackground(RETRO_BG);
+            panel.setBorder(new EmptyBorder(20, 20, 20, 20));
+            panel.add(new JLabel("Downloading " + filename + "...") {{
+                setForeground(RETRO_FG);
+                setFont(new Font("Consolas", Font.BOLD, 12));
+            }}, BorderLayout.NORTH);
+            panel.add(progressBar, BorderLayout.CENTER);
+            progressDialog.add(panel);
+            progressDialog.setSize(400, 120);
+            progressDialog.setLocationRelativeTo(this);
+
+            // Ejecutar download en thread separado
+            new Thread(() -> {
+                try (FileOutputStream fos = new FileOutputStream(localFile)) {
+                    // Obtener tamaño del archivo remoto
+                    long fileSize = 0;
+                    try {
+                        fileSize = Long.parseLong(sizeStr.replace(",", ""));
+                    } catch (NumberFormatException e) {
+                        // Si no se puede parsear, usar estimación
+                        fileSize = 1000000; // 1MB default
+                    }
+
+                    final long finalFileSize = fileSize;
+
+                    ftpClient.setCopyStreamListener(new org.apache.commons.net.io.CopyStreamListener() {
+                        @Override
+                        public void bytesTransferred(long totalBytesTransferred, int bytesTransferred, long streamSize) {
+                            int percent = finalFileSize > 0 ? (int)((totalBytesTransferred * 100) / finalFileSize) : 0;
+                            SwingUtilities.invokeLater(() -> progressBar.setValue(Math.min(percent, 100)));
+                        }
+
+                        @Override
+                        public void bytesTransferred(org.apache.commons.net.io.CopyStreamEvent event) {
+                            bytesTransferred(event.getTotalBytesTransferred(), event.getBytesTransferred(), event.getStreamSize());
+                        }
+                    });
+
+                    boolean success = ftpClient.retrieveFile(filename, fos);
+
+                    SwingUtilities.invokeLater(() -> {
+                        progressDialog.dispose();
+                        if (success) {
+                            log("[SUCCESS] File downloaded: " + filename, RETRO_SUCCESS);
+                        } else {
+                            log("[ERROR] Download failed", RETRO_ERROR);
+                        }
+                    });
+                } catch (IOException e) {
+                    SwingUtilities.invokeLater(() -> {
+                        progressDialog.dispose();
+                        log("[ERROR] Download error: " + e.getMessage(), RETRO_ERROR);
+                    });
                 }
-            } catch (IOException e) {
-                log("[ERROR] Download error: " + e.getMessage(), RETRO_ERROR);
-            }
+            }).start();
+
+            progressDialog.setVisible(true);
         }
     }
 

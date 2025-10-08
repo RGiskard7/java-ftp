@@ -72,6 +72,9 @@ public class FtpClientHandler implements Runnable {
 	/** Directorio de trabajo actual del cliente */
 	private String currentDirectory;
 
+	/** Tipo de transferencia actual: "A" (ASCII) o "I" (Binary/Image) */
+	private String transferType = "A";
+
 	/**
 	 * Constructor del manejador de cliente.
 	 *
@@ -95,7 +98,8 @@ public class FtpClientHandler implements Runnable {
 		System.out.println("\nConexión con el cliente " + controlSocket.getInetAddress());
 
 		try {
-			in = new BufferedReader(new InputStreamReader(controlSocket.getInputStream()));
+			// Usar UTF-8 explícitamente para soportar nombres con acentos, ñ, etc.
+			in = new BufferedReader(new InputStreamReader(controlSocket.getInputStream(), "UTF-8"));
 			out = new PrintWriter(controlSocket.getOutputStream(), true);
 
 			sendReply(220, "Welcome to the FTP server");
@@ -104,16 +108,20 @@ public class FtpClientHandler implements Runnable {
 				System.out.println("\nModo conexión: " +  ((connectionMode != null) ? connectionMode : "NO ESPECIFICADO"));
 				System.out.println("Tipo usuario: " + currentUser.getProfile());
 				System.out.println("Comando recibido: " + command);
-				
-				String[] commandParts = command.split(" ");
+
+				String[] commandParts = command.split(" ", 2); // Límite 2: comando + resto
 			    String commandName = commandParts[0];
-			    String commandArg = (commandParts.length > 1) ? commandParts[1] : null; // Evitar error si no hay argumento
+			    String commandArg = (commandParts.length > 1) ? commandParts[1] : null; // Toma TODO después del espacio
 				
 				switch (commandName) {
 			        case "SYST":
 			            sendReply(215, "UNIX Type: L8");
 			            break;
-			            
+
+					case "TYPE":
+						handleTypeCommand(commandArg);
+						break;
+
 					case "USER":
 						handleUserCommand(commandArg);
 						break;
@@ -261,11 +269,35 @@ public class FtpClientHandler implements Runnable {
 	    if (authenticateUser(usernameBuffer, passwordInput)) {
 	        sendReply(230, "User logged in, proceed.");
 	        Util.printGreenColor("Usuario logeado correctamente");
+	        FTP.Util.FileLogger.logAuth(usernameBuffer, true);
 	    } else {
 	        sendReply(530, "Authentication failed.");
+	        FTP.Util.FileLogger.logAuth(usernameBuffer, false);
 	    }
 
 	    usernameBuffer = null; // Resetear el estado después de PASS
+	}
+
+	/**
+	 * Maneja el comando TYPE para establecer el tipo de transferencia.
+	 *
+	 * @param type Tipo de transferencia ('A' para ASCII, 'I' para binario)
+	 */
+	private void handleTypeCommand(String type) {
+	    if (type == null || type.isEmpty()) {
+	        sendReply(501, "Syntax error in parameters or arguments.");
+	        return;
+	    }
+
+	    if (type.equalsIgnoreCase("A")) {
+	        transferType = "A";
+	        sendReply(200, "Type set to ASCII.");
+	    } else if (type.equalsIgnoreCase("I")) {
+	        transferType = "I";
+	        sendReply(200, "Type set to Binary.");
+	    } else {
+	        sendReply(504, "Command not implemented for that parameter.");
+	    }
 	}
 
 	/**

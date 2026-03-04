@@ -11,6 +11,7 @@ import java.net.Socket;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
+import FTP.Util.FileLogger;
 import FTP.Util.Util;
 
 /**
@@ -49,13 +50,40 @@ public class ServerFunctions {
 		try {
 			File rootDir = new File(JavaFtpServer.dirRoot).getCanonicalFile();
 			File targetFile = file.getCanonicalFile();
-
-			// Verificar que el path del archivo comience con el path del directorio raíz
 			return targetFile.getAbsolutePath().startsWith(rootDir.getAbsolutePath());
 		} catch (IOException e) {
 			Util.printRedColor("Error al validar path: " + e.getMessage());
 			return false;
 		}
+	}
+
+	/**
+	 * Resuelve una ruta relativa desde el directorio actual y valida que quede bajo la raíz.
+	 *
+	 * @param currentDir Directorio de trabajo actual
+	 * @param relativePath Argumento del comando (nombre de archivo o directorio)
+	 * @return File canónico validado, o null si la ruta es inválida o sale de la raíz
+	 */
+	private File resolveAndValidatePath(String currentDir, String relativePath) {
+		if (relativePath == null || relativePath.trim().isEmpty()) return null;
+		try {
+			File base = new File(currentDir);
+			File resolved = new File(base, relativePath).getCanonicalFile();
+			return isPathSafe(resolved) ? resolved : null;
+		} catch (IOException e) {
+			return null;
+		}
+	}
+
+	/**
+	 * Resuelve el path relativo al CWD del cliente y valida que quede bajo la raíz.
+	 * Usado por SIZE y MDTM.
+	 *
+	 * @param relativePath Argumento del comando (ruta de archivo)
+	 * @return File canónico validado, o null si la ruta es inválida
+	 */
+	public File resolvePathToFile(String relativePath) {
+		return resolveAndValidatePath(handler.getCurrentDirectory(), relativePath);
 	}
 
 	/**
@@ -161,7 +189,7 @@ public class ServerFunctions {
         InputStream dataIn;
         File file;
 
-        if (filename == null || filename.isBlank()) {
+        if (filename == null || filename.trim().isEmpty()) {
         	handler.sendReply(501, "Syntax error in parameters or arguments.");
             return;
         }
@@ -172,6 +200,8 @@ public class ServerFunctions {
             Util.printRedColor("Nombre de archivo peligroso rechazado: " + filename);
             return;
         }
+
+        FileLogger.logAudit(handler.getCurrentUsername(), handler.getClientAddress(), "STOR", filename);
 
         handler.sendReply(150, "Opening data connection.");
 
@@ -184,6 +214,7 @@ public class ServerFunctions {
 
             // Validar que el archivo esté dentro del directorio raíz
             if (!isPathSafe(file)) {
+                FileLogger.logAudit(handler.getCurrentUsername(), handler.getClientAddress(), "PATH_DENIED", "STOR " + filename);
                 handler.sendReply(550, "Access denied. Path outside root directory.");
                 Util.printRedColor("Intento de path traversal en upload: " + file.getAbsolutePath());
                 return;
@@ -220,7 +251,7 @@ public class ServerFunctions {
         OutputStream dataOut;
         File file;
 
-        if (filename == null || filename.isBlank()) {
+        if (filename == null || filename.trim().isEmpty()) {
             handler.sendReply(501, "Syntax error in parameters or arguments.");
             return;
         }
@@ -237,6 +268,7 @@ public class ServerFunctions {
 
         // Validar que el archivo esté dentro del directorio raíz
         if (!isPathSafe(file)) {
+            FileLogger.logAudit(handler.getCurrentUsername(), handler.getClientAddress(), "PATH_DENIED", "RETR " + filename);
             handler.sendReply(550, "Access denied. Path outside root directory.");
             Util.printRedColor("Intento de path traversal en download: " + file.getAbsolutePath());
             return;
@@ -283,7 +315,7 @@ public class ServerFunctions {
     protected void handleDeleteFileCommand(String filename) {
     	File file;
 
-        if (filename == null || filename.isBlank()) {
+        if (filename == null || filename.trim().isEmpty()) {
             handler.sendReply(501, "Syntax error in parameters or arguments.");
             return;
         }
@@ -299,6 +331,7 @@ public class ServerFunctions {
 
         // Validar que el archivo esté dentro del directorio raíz
         if (!isPathSafe(file)) {
+            FileLogger.logAudit(handler.getCurrentUsername(), handler.getClientAddress(), "PATH_DENIED", "DELE " + filename);
             handler.sendReply(550, "Access denied. Path outside root directory.");
             Util.printRedColor("Intento de path traversal en delete: " + file.getAbsolutePath());
             return;
@@ -310,6 +343,8 @@ public class ServerFunctions {
             return;
         }
 
+        FileLogger.logAudit(handler.getCurrentUsername(), handler.getClientAddress(), "DELE", filename);
+
         if (file.delete()) {
             handler.sendReply(250, "File deleted successfully.");
         } else {
@@ -320,7 +355,7 @@ public class ServerFunctions {
     protected void handleCreateDirectory(String dirName) {
     	File newDir;
 
-        if (dirName == null || dirName.isBlank()) {
+        if (dirName == null || dirName.trim().isEmpty()) {
             handler.sendReply(501, "Syntax error in parameters or arguments.");
             return;
         }
@@ -336,6 +371,7 @@ public class ServerFunctions {
 
         // Validar que el directorio esté dentro del directorio raíz
         if (!isPathSafe(newDir)) {
+            FileLogger.logAudit(handler.getCurrentUsername(), handler.getClientAddress(), "PATH_DENIED", "MKD " + dirName);
             handler.sendReply(550, "Access denied. Path outside root directory.");
             Util.printRedColor("Intento de path traversal en MKD: " + newDir.getAbsolutePath());
             return;
@@ -345,6 +381,8 @@ public class ServerFunctions {
             handler.sendReply(550, "Directory already exists.");
             return;
         }
+
+        FileLogger.logAudit(handler.getCurrentUsername(), handler.getClientAddress(), "MKD", dirName);
 
         if (newDir.mkdirs()) {
             handler.sendReply(257, "\"" + dirName + "\" directory created successfully.");
@@ -356,7 +394,7 @@ public class ServerFunctions {
     protected void handleDeleteDirectoryCommand(String dirName) {
     	File dir;
 
-        if (dirName == null || dirName.isBlank()) {
+        if (dirName == null || dirName.trim().isEmpty()) {
             handler.sendReply(501, "Syntax error in parameters or arguments.");
             return;
         }
@@ -372,6 +410,7 @@ public class ServerFunctions {
 
         // Validar que el directorio esté dentro del directorio raíz
         if (!isPathSafe(dir)) {
+            FileLogger.logAudit(handler.getCurrentUsername(), handler.getClientAddress(), "PATH_DENIED", "RMD " + dirName);
             handler.sendReply(550, "Access denied. Path outside root directory.");
             Util.printRedColor("Intento de path traversal en RMD: " + dir.getAbsolutePath());
             return;
@@ -382,6 +421,8 @@ public class ServerFunctions {
             handler.sendReply(550, "Directory not found.");
             return;
         }
+
+        FileLogger.logAudit(handler.getCurrentUsername(), handler.getClientAddress(), "RMD", dirName);
 
         // Intentar eliminar el directorio
         // File.delete() sólo elimina directorios vacíos
@@ -395,7 +436,7 @@ public class ServerFunctions {
     protected void handleRenameFromCommand(String oldName) {
     	File file;
 
-        if (oldName == null || oldName.isBlank()) {
+        if (oldName == null || oldName.trim().isEmpty()) {
             handler.sendReply(501, "Syntax error in parameters or arguments.");
             return;
         }
@@ -411,6 +452,7 @@ public class ServerFunctions {
 
         // Validar que el archivo esté dentro del directorio raíz
         if (!isPathSafe(file)) {
+            FileLogger.logAudit(handler.getCurrentUsername(), handler.getClientAddress(), "PATH_DENIED", "RNFR " + oldName);
             handler.sendReply(550, "Access denied. Path outside root directory.");
             Util.printRedColor("Intento de path traversal en RNFR: " + file.getAbsolutePath());
             return;
@@ -421,6 +463,8 @@ public class ServerFunctions {
             return;
         }
 
+        FileLogger.logAudit(handler.getCurrentUsername(), handler.getClientAddress(), "RNFR", oldName);
+
         // Guardar el archivo pendiente para renombrar y enviar respuesta 350
         pendingRenameFile = file;
         handler.sendReply(350, "File exists, ready for destination name.");
@@ -429,7 +473,7 @@ public class ServerFunctions {
     protected void handleRenameToCommand(String newName) {
     	File destFile;
 
-        if (newName == null || newName.isBlank()) {
+        if (newName == null || newName.trim().isEmpty()) {
             handler.sendReply(501, "Syntax error in parameters or arguments.");
             return;
         }
@@ -452,11 +496,14 @@ public class ServerFunctions {
 
         // Validar que el archivo esté dentro del directorio raíz
         if (!isPathSafe(destFile)) {
+            FileLogger.logAudit(handler.getCurrentUsername(), handler.getClientAddress(), "PATH_DENIED", "RNTO " + newName);
             handler.sendReply(550, "Access denied. Path outside root directory.");
             Util.printRedColor("Intento de path traversal en RNTO: " + destFile.getAbsolutePath());
             pendingRenameFile = null; // Limpiar estado
             return;
         }
+
+        FileLogger.logAudit(handler.getCurrentUsername(), handler.getClientAddress(), "RNTO", newName);
 
         // Intentar renombrar
         if (pendingRenameFile.renameTo(destFile)) {
@@ -470,29 +517,27 @@ public class ServerFunctions {
     }
     
     protected void handleChangeWorkingDirectory(String dir) {
-    	File newDir;
-
-        if (dir == null || dir.isBlank()) {
+        if (dir == null || dir.trim().isEmpty()) {
             handler.sendReply(501, "Syntax error in parameters or arguments.");
             return;
         }
+        // Rechazar explícitamente ".." y rutas absolutas (defensa en profundidad)
+        if (dir.contains("..") || dir.startsWith("/") || dir.startsWith("\\")) {
+            handler.sendReply(550, "Directory name not allowed.");
+            return;
+        }
 
-        // Construir la ruta del nuevo directorio
-        newDir = new File(handler.getCurrentDirectory(), dir);
+        File newDir = resolveAndValidatePath(handler.getCurrentDirectory(), dir);
+        if (newDir == null) {
+            handler.sendReply(550, "Access denied. Path outside root directory.");
+            return;
+        }
 
         if (!newDir.exists() || !newDir.isDirectory()) {
             handler.sendReply(550, "Directory not found or not a directory.");
             return;
         }
 
-        // Validar que el nuevo directorio esté dentro del directorio raíz
-        if (!isPathSafe(newDir)) {
-            handler.sendReply(550, "Access denied. Path outside root directory.");
-            Util.printRedColor("Intento de path traversal detectado: " + newDir.getAbsolutePath());
-            return;
-        }
-
-        // Actualizar el directorio de trabajo del cliente
         handler.setCurrentDirectory(newDir.getAbsolutePath());
         handler.sendReply(250, "Directory successfully changed to " + newDir.getName());
     }

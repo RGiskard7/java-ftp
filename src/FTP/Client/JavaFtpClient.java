@@ -6,6 +6,7 @@ import java.util.Scanner;
 
 import org.apache.commons.net.ftp.FTPClient;
 import org.apache.commons.net.ftp.FTPReply;
+import org.apache.commons.net.ftp.FTPSClient;
 
 import FTP.Util.Util;
 
@@ -35,8 +36,8 @@ public class JavaFtpClient {
 	 * @param args Argumentos de línea de comandos (no utilizados)
 	 */
 	public static void main(String[] args) {
-		FTPClient ftpClient;
-		ClientFunctions clientFunctions;
+		FTPClient ftpClient = null;
+		ClientFunctions clientFunctions = null;
 		String[] hostname, userCredentials;
 		int replyCode, dataPort, option;
 		boolean login;
@@ -45,11 +46,11 @@ public class JavaFtpClient {
 
 		System.out.println("Cliente FTP iniciado");
 
-		ftpClient = new FTPClient();
-		clientFunctions = new ClientFunctions(ftpClient);
-		
 		try (Scanner sc = new Scanner(System.in)) {
 			hostname = captureHostname(sc);
+			boolean useTls = askUseTls(sc);
+			ftpClient = useTls ? new FTPSClient(false) : new FTPClient();
+			clientFunctions = new ClientFunctions(ftpClient);
 
 			// Configurar encoding UTF-8 para soportar acentos, ñ, etc.
 			ftpClient.setControlEncoding("UTF-8");
@@ -158,12 +159,24 @@ public class JavaFtpClient {
 			 System.out.println("Error: " + e.getMessage());
 		} finally {
             try {
-                ftpClient.logout();
-                ftpClient.disconnect();
+                if (ftpClient != null) {
+                    ftpClient.logout();
+                    ftpClient.disconnect();
+                }
             } catch (IOException e) {
                 System.out.println("Error al cerrar conexión: " + e.getMessage());
             }
 		}
+	}
+
+	/**
+	 * Pregunta si usar FTPS (AUTH TLS).
+	 */
+	private static boolean askUseTls(Scanner sc) {
+		System.out.println("\n¿Usar FTPS (AUTH TLS)? s/N");
+		System.out.print(":> ");
+		String input = sc.nextLine().trim();
+		return "s".equalsIgnoreCase(input) || "si".equalsIgnoreCase(input) || "y".equalsIgnoreCase(input);
 	}
 
 	/**
@@ -180,13 +193,13 @@ public class JavaFtpClient {
 		System.out.println("\nIntroduce el hostname del servidor FTP (localhost por defecto)");
 		System.out.print(":> ");
 		input = sc.nextLine().trim();
-		if (input != null && !input.isBlank())
+		if (input != null && !input.trim().isEmpty())
 			hostname = input;
 
 		System.out.println("\nIntroduce el puerto (puerto 21 por defecto)");
 		System.out.print(":> ");
 		input = sc.nextLine().trim();
-		if (input != null && !input.isBlank())
+		if (input != null && !input.trim().isEmpty())
 			port = input;
 		
 		return new String[] {hostname, port};
@@ -208,7 +221,7 @@ public class JavaFtpClient {
 			System.out.print(":> ");
 			input = sc.nextLine().trim();
 			
-			if (input.isEmpty() || input.isBlank()) {
+			if (input == null || input.trim().isEmpty()) {
 				Util.printRedColor("\nError: El nombre de usuario no puede estar vacío");
 				input = null;
 			}	
@@ -222,7 +235,7 @@ public class JavaFtpClient {
 			System.out.print(":> ");
 			input = sc.nextLine().trim();
 			
-			if (input.isEmpty() || input.isBlank()) {
+			if (input == null || input.trim().isEmpty()) {
 				Util.printRedColor("Error: La contraseña no puede estar vacía");
 				input = null;
 			}	
@@ -249,7 +262,7 @@ public class JavaFtpClient {
 			System.out.print(":> ");
 			input = sc.nextLine().trim();
 			
-			if (input.isEmpty() || input.isBlank()) {
+			if (input == null || input.trim().isEmpty()) {
 				Util.printRedColor("\nError: El campo no puede estar vacío, elige un modo de conexión: PASSIVE/ACTIVE");
 				input = null;
 			} else if (!input.toUpperCase().matches("PASSIVE|ACTIVE")) {

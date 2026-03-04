@@ -25,6 +25,7 @@ Una implementación personalizada del Protocolo de Transferencia de Archivos (FT
   - [Modos de Transferencia FTP](#modos-de-transferencia-ftp)
   - [Control de Acceso Basado en Roles](#control-de-acceso-basado-en-roles)
   - [Seguridad](#seguridad)
+  - [Despliegue en producción](#despliegue-en-producción)
   - [Solución de Problemas](#solución-de-problemas)
   - [Contribuciones](#contribuciones)
   - [Licencia](#licencia)
@@ -57,6 +58,7 @@ Este proyecto es una implementación educativa completa del Protocolo de Transfe
 | **Servidor** | [JavaFtpServer.java](src/FTP/Server/JavaFtpServer.java) | Servidor FTP multihilo que soporta los modos de transferencia ACTIVO y PASIVO. |
 | **Cliente de Consola** | [JavaFtpClient.java](src/FTP/Client/JavaFtpClient.java) | Cliente FTP interactivo de línea de comandos usando Apache Commons Net. |
 | **Cliente GUI** | [ClientGUI.java](src/FTP/Client/ClientGUI.java) | Interfaz gráfica de estilo terminal retro ámbar para operaciones FTP. |
+| **Panel Admin** | [AdminGUI.java](src/FTP/Admin/AdminGUI.java) | Aplicación Swing para gestionar usuarios en la base SQLite (añadir, editar, activar/desactivar). |
 | **Dependencia** | `commons-net-3.11.1.jar` | Biblioteca Apache Commons Net (incluida en [lib/](lib/)). |
 
 ### ¿Qué Aprenderás?
@@ -78,7 +80,7 @@ Al estudiar y ejecutar este proyecto, entenderás:
 ### Capacidades del Servidor
 
   - **Conexiones Concurrentes**: Arquitectura multihilo que utiliza `ExecutorService` para manejar múltiples clientes simultáneos.
-  - **Autenticación de Usuarios**: Sistema de autenticación basado en archivos con credenciales en texto plano almacenadas en `files/users/users.txt`.
+  - **Autenticación de Usuarios**: Soporte para SQLite (recomendado) o fichero TXT; contraseñas con hash bcrypt. Gestión de usuarios con el panel Admin o la herramienta PasswordTool (modo fichero).
   - **Control de Acceso Basado en Roles (RBAC)**: Sistema de permisos de tres niveles:
       - `BASICO` — Acceso de solo lectura (LIST, RETR, CWD, PWD).
       - `INTERMEDIO` — Acceso de lectura/escritura (añade STOR, MKD, RMD, RNFR, RNTO, DELE).
@@ -86,7 +88,7 @@ Al estudiar y ejecutar este proyecto, entenderás:
   - **Modos de Transferencia Duales**:
       - **Modo PASIVO** — El servidor abre un puerto de datos y el cliente se conecta (compatible con NAT/firewall).
       - **Modo ACTIVO** — El cliente abre un puerto de datos y el servidor se conecta (requiere redirección de puertos en el cliente).
-  - **Soporte de Comandos FTP**: USER, PASS, SYST, PASV, PORT, LIST, STOR, RETR, DELE, MKD, RMD, RNFR, RNTO, CWD, CDUP, PWD, QUIT.
+  - **Soporte de Comandos FTP**: USER, PASS, SYST, FEAT, OPTS UTF8, NOOP, PASV, PORT, LIST, STOR, RETR, SIZE, MDTM, DELE, MKD, RMD, RNFR, RNTO, CWD, CDUP, PWD, QUIT.
 
 ### Características del Cliente
 
@@ -128,6 +130,8 @@ java-ftp/
 │       │   ├── ServerFunctions.java    # Implementaciones de comandos FTP
 │       │   ├── User.java               # Modelo de credenciales de usuario
 │       │   └── UserProfile.java        # Enum para RBAC
+│       ├── Admin/
+│       │   └── AdminGUI.java           # Panel de administración de usuarios (SQLite)
 │       └── Util/
 │           └── Util.java               # Utilidades compartidas
 ├── lib/
@@ -551,20 +555,67 @@ java -cp "bin:lib/commons-net-3.11.1.jar" FTP.Client.ClientGUI
 
 ### Configuración de Usuarios
 
-Crea el archivo de usuarios en `files/users/users.txt` con el siguiente formato:
+El servidor puede usar **SQLite** (recomendado) o un **fichero TXT** para la base de usuarios.
+
+#### Opción 1: SQLite (recomendado)
+
+En `server.properties` define la ruta de la base de datos:
+
+```properties
+ftp.users.database=files/ftp_users.db
+```
+
+Si el fichero no existe, el servidor crea la base y la tabla al iniciar. Los usuarios tienen un flag `enabled` (activar/desactivar sin borrar).
+
+- **Migración desde el fichero TXT**: una vez configurado SQLite, migra los usuarios existentes con:
+  ```bash
+  java -cp "bin:lib/commons-net-3.11.1.jar:lib/jbcrypt-0.4.jar:lib/sqlite-jdbc-3.44.1.0.jar" FTP.Server.MigrateUsersToDb files/users/users.txt files/ftp_users.db
+  ```
+  (El segundo argumento es opcional; si se omite, se usa `ftp.users.database` de `server.properties` o `files/ftp_users.db` por defecto.)
+
+- **Panel de administración**: para gestionar usuarios (añadir, editar, activar/desactivar) usa la aplicación gráfica:
+  ```bash
+  # Linux/macOS
+  ./run-admin-gui.sh
+
+  # Windows
+  run-admin-gui.bat
+  ```
+  O con classpath manual:
+  ```bash
+  java -cp "bin:lib/commons-net-3.11.1.jar:lib/jbcrypt-0.4.jar:lib/sqlite-jdbc-3.44.1.0.jar" FTP.Admin.AdminGUI
+  ```
+  El panel lee `server.properties` (desde el directorio de trabajo) para obtener `ftp.users.database`; si no está definido, puedes indicar la ruta del `.db` en la ventana o abrirla con el botón "Cargar / Abrir".
+
+#### Opción 2: Fichero TXT (retrocompatibilidad)
+
+Si `ftp.users.database` está vacío o no definido, el servidor usa el fichero de usuarios:
+
+```properties
+# Dejar ftp.users.database vacío y definir:
+ftp.users.file=files/users/users.txt
+```
+
+Formato de `files/users/users.txt`:
 
 ```
-nombre_usuario:contraseña:PERFIL
+nombre_usuario:hash_bcrypt:PERFIL
 ```
 
 **Perfiles**: `BASICO`, `INTERMEDIO`, `ADMINISTRADOR`
 
-**Ejemplo:**
+Para generar hashes sin escribir contraseñas en claro, usa **PasswordTool**:
+
+```bash
+java -cp "bin:lib/commons-net-3.11.1.jar:lib/jbcrypt-0.4.jar" FTP.Server.PasswordTool adduser miUsuario miPassword ADMINISTRADOR files/users/users.txt
+```
+
+**Ejemplo de usuarios (TXT):**
 
 ```
-alice:pass123:BASICO
-bob:secret456:INTERMEDIO
-admin:admin789:ADMINISTRADOR
+alice:hash_alice:BASICO
+bob:hash_bob:INTERMEDIO
+admin:hash_admin:ADMINISTRADOR
 ```
 
 -----
@@ -612,29 +663,51 @@ admin:admin789:ADMINISTRADOR
 
 ## Seguridad
 
-### ⚠️ PROYECTO EDUCATIVO — NO APTO PARA PRODUCCIÓN
+El servidor incluye medidas pensadas para uso en producción:
 
-Esta implementación está diseñada con fines de aprendizaje y contiene varias limitaciones de seguridad.
+  - **Contraseñas**: Almacenamiento con hash bcrypt (formato `username:bcryptHash:profile` en el fichero de usuarios). Uso de la herramienta `PasswordTool` para dar de alta usuarios sin escribir contraseñas en claro.
+  - **FTPS**: Cifrado TLS opcional en canal de control (AUTH TLS) y de datos (PROT P). Configuración vía `server.properties` (keystore PKCS12).
+  - **Path traversal**: Validación de rutas con `resolveAndValidatePath` y rechazo explícito de `..` y rutas absolutas en CWD.
+  - **Comando PORT**: Validación anti-SSRF (la IP en PORT debe coincidir con la del cliente).
+  - **Rate limiting**: Límite de intentos de login fallidos por IP (`ftp.auth.max.attempts`, `ftp.auth.lockout.minutes`).
+  - **Auditoría**: Registro de autenticaciones, comandos sensibles (STOR, DELE, RMD, MKD, RNFR/RNTO) y rechazos (permisos, path).
+  - **Rotación de logs**: Por tamaño (`ftp.log.max.size.bytes`, `ftp.log.max.backups`).
 
-#### Limitaciones de Seguridad Conocidas
+Para entornos muy sensibles se recomienda además: FTPS obligatorio (`ftp.tls.required=true`), firewall restringido al puerto de control y al rango pasivo, y revisión periódica de logs.
 
-  - Almacenamiento de contraseñas en texto plano en `users.txt`.
-  - Sin cifrado TLS/SSL para los canales de control o de datos.
-  - Validación de entrada básica sin sanitización exhaustiva.
-  - Sin limitación de velocidad o protección contra fuerza bruta.
-  - Protección de un solo nivel contra el recorrido de directorios (directory traversal).
+-----
 
-#### Recomendaciones para Producción
+## Despliegue en producción
 
-Antes de usar en producción, implementa:
+Para ejecutar el servidor como servicio sin interacción por consola:
 
-  - Hashing de contraseñas (bcrypt/Argon2) con sales.
-  - Cifrado TLS (FTPS).
-  - Validación exhaustiva de rutas contra directory traversal.
-  - Limitación de intentos de autenticación.
-  - Registros de auditoría.
-  - Cuotas de recursos por usuario.
-  - Alternativas modernas (SFTP, APIs de archivos sobre HTTPS).
+1. **Configuración completa en `server.properties`**
+   - `ftp.root.directory`: directorio raíz absoluto (ej. `/var/ftp`).
+   - `ftp.users.file`: ruta al fichero de usuarios (formato `username:bcryptHash:profile`).
+   - Si ambos están definidos, el servidor no pedirá nada por stdin (modo daemon).
+
+2. **Crear usuarios con PasswordTool** (no escribir contraseñas en claro):
+   ```bash
+   java -cp "bin:lib/commons-net-3.11.1.jar:lib/jbcrypt-0.4.jar" FTP.Server.PasswordTool adduser miUsuario miPassword ADMINISTRADOR files/users/users.txt
+   ```
+
+3. **TLS (opcional)**  
+   - Generar keystore PKCS12:  
+     `keytool -genkeypair -alias ftp -keyalg RSA -keysize 2048 -storetype PKCS12 -keystore ftp.p12 -validity 3650`  
+   - En `server.properties`: `ftp.tls.enabled=true`, `ftp.tls.keystore.path=ruta/al/ftp.p12`, `ftp.tls.keystore.password=...`.
+
+4. **Firewall**  
+   - Abrir solo el puerto de control (ej. 21 o 2121) y el rango de puertos pasivos configurado en `ftp.passive.port.range` (ej. `50000-50100`).
+
+5. **Servicio systemd (Linux)**  
+   - Copiar `deploy/ftp-server.service` a `/etc/systemd/system/`, ajustar `WorkingDirectory`, `User`/`Group` y la ruta del JAR/lib.  
+   - `sudo systemctl daemon-reload && sudo systemctl enable ftp-server && sudo systemctl start ftp-server`.
+
+6. **Build con Maven**
+   - `mvn package` genera el JAR en `target/` y copia dependencias a `lib/`.  
+   - Ejecutar: `java -cp "target/java-ftp-1.2.0-SNAPSHOT.jar:lib/*" FTP.Server.JavaFtpServer` (o usar el script/documentación de tu despliegue).
+
+El servidor admite **graceful shutdown**: al recibir SIGINT/SIGTERM deja de aceptar nuevas conexiones y espera a que las sesiones activas terminen (hasta 10 s) antes de cerrar.
 
 -----
 
@@ -658,23 +731,21 @@ sudo java -cp "bin:lib/commons-net-3.11.1.jar" FTP.Server.JavaFtpServer
 
 ### Fallo de Autenticación
 
-  - Verifica que `files/users/users.txt` exista y tenga el formato correcto.
-  - Comprueba si hay espacios en blanco al final de las entradas de usuario/contraseña.
-  - Asegúrate de que el perfil de usuario sea un valor enum válido.
+  - Verifica que el fichero de usuarios exista (por defecto `files/users/users.txt`) y tenga formato `username:bcryptHash:profile` (una línea por usuario). Las contraseñas deben estar hasheadas con bcrypt; usa `PasswordTool adduser` para añadir usuarios.
+  - Líneas vacías o que empiezan por `#` se ignoran. El perfil debe ser `BASICO`, `INTERMEDIO` o `ADMINISTRADOR`.
 
 ### Errores de Compilación
 
 ```bash
-# Verificar la versión de JDK
+# Verificar la versión de JDK (8+)
 java -version
 
-# Asegurarse de que el JAR de commons-net existe
-ls lib/commons-net-3.11.1.jar
+# Con Maven
+mvn compile
 
-# Limpiar y reconstruir
-rm -rf bin
-mkdir bin
-javac -d bin -cp "lib/commons-net-3.11.1.jar" src/FTP/**/*.java
+# Sin Maven: asegurarse de tener commons-net y jbcrypt en lib/
+ls lib/commons-net-3.11.1.jar lib/jbcrypt-0.4.jar
+javac -d bin -cp "lib/commons-net-3.11.1.jar:lib/jbcrypt-0.4.jar" src/FTP/Client/*.java src/FTP/Server/*.java src/FTP/Util/*.java
 ```
 
 -----
@@ -690,12 +761,9 @@ javac -d bin -cp "lib/commons-net-3.11.1.jar" src/FTP/**/*.java
 
 ### Áreas de Desarrollo
 
-  - Añadir soporte para TLS/SSL.
-  - Implementar almacenamiento seguro de contraseñas.
-  - Añadir pruebas unitarias exhaustivas.
+  - Pruebas unitarias exhaustivas (path safety, throttle, bcrypt).
   - Soportar comandos FTP adicionales (ABOR, REST, STAT).
   - Soporte para IPv6.
-  - Archivo de configuración para los ajustes del servidor.
 
 ### Guía para Contribuir
 

@@ -10,6 +10,7 @@ import java.io.*;
 import org.apache.commons.net.ftp.FTPClient;
 import org.apache.commons.net.ftp.FTPFile;
 import org.apache.commons.net.ftp.FTPReply;
+import org.apache.commons.net.ftp.FTPSClient;
 
 /**
  * Interfaz gráfica retro para el cliente FTP.
@@ -39,6 +40,7 @@ public class ClientGUI extends JFrame {
     private JButton connectButton;
     private JButton disconnectButton;
     private JComboBox<String> modeCombo;
+    private JCheckBox useTlsCheckBox;
 
     private JTable fileTable;
     private DefaultTableModel tableModel;
@@ -68,6 +70,12 @@ public class ClientGUI extends JFrame {
     public ClientGUI() {
         initComponents();
         ftpClient = new FTPClient();
+    }
+
+    private FTPClient createFtpClient() {
+        return useTlsCheckBox != null && useTlsCheckBox.isSelected()
+            ? new FTPSClient(false)
+            : new FTPClient();
     }
 
     /**
@@ -167,6 +175,13 @@ public class ClientGUI extends JFrame {
         modeCombo = new JComboBox<>(modes);
         styleComboBox(modeCombo, fieldFont);
         panel.add(modeCombo, gbc);
+
+        useTlsCheckBox = new JCheckBox("Use FTPS (TLS)");
+        useTlsCheckBox.setForeground(RETRO_FG);
+        useTlsCheckBox.setBackground(RETRO_HEADER_BG);
+        useTlsCheckBox.setFont(fieldFont);
+        gbc.gridx = 2; gbc.gridy = 2; gbc.gridwidth = 1;
+        panel.add(useTlsCheckBox, gbc);
 
         // Botones
         gbc.gridx = 2; gbc.gridwidth = 2; gbc.weightx = 0;
@@ -499,6 +514,7 @@ public class ClientGUI extends JFrame {
 
             log("[INFO] Connecting to " + host + ":" + port + "...", RETRO_FG);
 
+            ftpClient = createFtpClient();
             // Configurar encoding UTF-8 para soportar acentos, ñ, etc.
             ftpClient.setControlEncoding("UTF-8");
 

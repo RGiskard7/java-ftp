@@ -1,10 +1,10 @@
 package FTP.Server;
 
 /**
- * Representa un usuario del sistema FTP con sus credenciales y perfil de acceso.
+ * Representa un usuario del sistema FTP con nombre y perfil de acceso.
  * <p>
- * Cada usuario tiene un nombre de usuario, contraseña y perfil que determina
- * los permisos de acceso a comandos FTP.
+ * Las contraseñas no se almacenan en memoria; la verificación se hace contra
+ * el hash almacenado en el fichero de usuarios (bcrypt).
  *
  * @author Eduardo Díaz Sánchez
  * @version 1.0
@@ -12,9 +12,6 @@ package FTP.Server;
 public class User {
 	/** Nombre de usuario */
 	private String username;
-
-	/** Contraseña del usuario */
-	private String password;
 
 	/** Perfil de acceso del usuario (BASICO, INTERMEDIO, ADMINISTRADOR) */
 	private UserProfile profile;
@@ -25,15 +22,13 @@ public class User {
 	public User() {}
 
 	/**
-	 * Constructor con parámetros.
+	 * Constructor con parámetros (sin contraseña; solo identidad y perfil).
 	 *
 	 * @param username Nombre de usuario
-	 * @param password Contraseña
 	 * @param profile Perfil de acceso
 	 */
-	public User(String username, String password, UserProfile profile) {
+	public User(String username, UserProfile profile) {
 		this.username = username;
-		this.password = password;
 		this.profile = profile;
 	}
 
@@ -56,24 +51,6 @@ public class User {
 	}
 
 	/**
-	 * Obtiene la contraseña del usuario.
-	 *
-	 * @return Contraseña del usuario
-	 */
-	public String getPassword() {
-		return password;
-	}
-
-	/**
-	 * Establece la contraseña del usuario.
-	 *
-	 * @param password Contraseña a establecer
-	 */
-	public void setPassword(String password) {
-		this.password = password;
-	}
-
-	/**
 	 * Obtiene el perfil de acceso del usuario.
 	 *
 	 * @return Perfil del usuario
@@ -90,16 +67,4 @@ public class User {
 	public void setProfile(UserProfile profile) {
 		this.profile = profile;
 	}
-
-	/**
-	 * Compara dos contraseñas para verificar autenticación.
-	 *
-	 * @param userPassword Contraseña almacenada del usuario
-	 * @param inputPassord Contraseña ingresada
-	 * @return 0 si son iguales, valor negativo si userPassword &lt; inputPassord, positivo si userPassword &gt; inputPassord
-	 */
-	public static int checkPassword(String userPassword, String inputPassord) {
-		return userPassword.compareTo(inputPassord);
-	}
-
 }

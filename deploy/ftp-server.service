@@ -1,0 +1,26 @@
+# Systemd unit para Java FTP Server (producción)
+# Copiar a /etc/systemd/system/ftp-server.service y ajustar rutas.
+# Ejecutar: sudo systemctl daemon-reload && sudo systemctl enable ftp-server && sudo systemctl start ftp-server
+
+[Unit]
+Description=Java FTP Server (FTPS, RBAC)
+After=network.target
+
+[Service]
+Type=simple
+User=ftp
+Group=ftp
+WorkingDirectory=/opt/java-ftp
+# Ruta al JAR y lib (si se usa Maven: mvn package deja java-ftp-1.2.0-SNAPSHOT.jar y lib/)
+ExecStart=/usr/bin/java -cp "java-ftp-1.2.0-SNAPSHOT.jar:lib/*" FTP.Server.JavaFtpServer
+Restart=on-failure
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+# Opcional: variables de entorno para rutas
+# Environment="FTP_ROOT=/var/ftp"
+# Environment="FTP_USERS_FILE=/opt/java-ftp/files/users/users.txt"
+
+[Install]
+WantedBy=multi-user.target

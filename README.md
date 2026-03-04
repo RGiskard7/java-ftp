@@ -618,9 +618,13 @@ ftp.users.database=files/ftp_users.db
 
 ### Habilitar FTPS (TLS)
 
-Para que el cliente pueda conectar con **«Use FTPS (TLS)»** marcado, el servidor debe tener TLS configurado:
+Para que el cliente pueda conectar con **«Use FTPS (TLS)»** marcado, el servidor debe tener un keystore y TLS habilitado en `server.properties`.
 
-1. **Generar un keystore** (una vez) en la raíz del proyecto:
+**Dónde ejecutar todo:** En la **carpeta del proyecto** (donde está `server.properties` y desde donde arrancas el servidor con `java -cp ...`). No uses el directorio raíz FTP (`ftp.root.directory`): ese es solo donde se sirven los archivos; el keystore y la configuración van en la carpeta del proyecto. La ruta `ftp.tls.keystore.path` en `server.properties` es relativa al directorio de trabajo al iniciar el servidor.
+
+**Resumen de pasos:**
+
+1. **Crear el keystore** (una vez). Ejecuta en la carpeta del proyecto:
 
    **Windows (PowerShell):**
    ```powershell
@@ -632,9 +636,9 @@ Para que el cliente pueda conectar con **«Use FTPS (TLS)»** marcado, el servid
    keytool -genkeypair -alias ftp -keyalg RSA -keysize 2048 -storetype PKCS12 -keystore ftp.p12 -validity 3650 -storepass changeit -dname "CN=FTP Server, O=Dev, L=Local, C=ES"
    ```
 
-   Se crea el fichero `ftp.p12`. La contraseña por defecto es `changeit`.
+   Se crea `ftp.p12` en la carpeta del proyecto. Contraseña del keystore: `changeit`.
 
-2. **Configurar en `server.properties`** (descomentar o añadir):
+2. **Configurar en `server.properties`.** El proyecto incluye ya estas líneas (si no, añádelas):
 
    ```properties
    ftp.tls.enabled=true
@@ -643,11 +647,11 @@ Para que el cliente pueda conectar con **«Use FTPS (TLS)»** marcado, el servid
    ftp.tls.required=false
    ```
 
-   Si `ftp.tls.keystore.path` es una ruta absoluta en Windows, usa `/`: por ejemplo `C:/ruta/al/ftp.p12`.
+   Si guardas el keystore en otra ruta, actualiza `ftp.tls.keystore.path` (en Windows usa `/`, no `\`).
 
-3. **Reiniciar el servidor**. A partir de entonces el cliente puede marcar «Use FTPS (TLS)» y conectarse cifrado.
+3. **Reiniciar el servidor.** A partir de entonces, cuando el cliente marque «Use FTPS (TLS)», el servidor aceptará `AUTH TLS` y hará el handshake correctamente.
 
-Con `ftp.tls.required=false` las conexiones sin TLS siguen permitidas. Si quieres exigir siempre FTPS, pon `ftp.tls.required=true`.
+**Sobre `ftp.tls.required`:** Con `false` (por defecto) las conexiones sin TLS siguen funcionando. Si quieres forzar que todo sea cifrado, pon `ftp.tls.required=true`.
 
 ### Configuración de Usuarios
 

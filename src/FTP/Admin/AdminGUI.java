@@ -155,12 +155,17 @@ public class AdminGUI extends JFrame {
         ));
     }
 
+    /** Texto del botón al pasar el ratón (oscuro sobre ámbar) para garantizar contraste. */
+    private static final Color BUTTON_HOVER_FOREGROUND = new Color(15, 15, 30);
+
     private JButton createStyledButton(String text, Font font) {
         JButton b = new JButton(text);
         b.setBackground(RETRO_BUTTON_BG);
         b.setForeground(RETRO_FG);
         b.setFont(font);
         b.setFocusPainted(false);
+        b.setOpaque(true);
+        b.setContentAreaFilled(true);
         b.setBorder(BorderFactory.createCompoundBorder(
             BorderFactory.createLineBorder(RETRO_FG, 1),
             new EmptyBorder(5, 10, 5, 10)
@@ -170,7 +175,7 @@ public class AdminGUI extends JFrame {
             public void mouseEntered(MouseEvent e) {
                 if (b.isEnabled()) {
                     b.setBackground(RETRO_FG);
-                    b.setForeground(RETRO_BG);
+                    b.setForeground(BUTTON_HOVER_FOREGROUND);
                 }
             }
             @Override

@@ -446,12 +446,17 @@ public class ClientGUI extends JFrame {
         combo.setBorder(BorderFactory.createLineBorder(RETRO_FG, 1));
     }
 
+    /** Color del texto al pasar el ratón (oscuro sobre ámbar) para garantizar contraste en todos los L&F. */
+    private static final Color BUTTON_HOVER_FOREGROUND = new Color(15, 15, 30);
+
     private JButton createStyledButton(String text, Font font) {
         JButton button = new JButton(text);
         button.setBackground(RETRO_BUTTON_BG);
         button.setForeground(RETRO_FG);
         button.setFont(font);
         button.setFocusPainted(false);
+        button.setOpaque(true);
+        button.setContentAreaFilled(true);
         button.setBorder(BorderFactory.createCompoundBorder(
             BorderFactory.createLineBorder(RETRO_FG, 1),
             new EmptyBorder(5, 10, 5, 10)
@@ -462,7 +467,7 @@ public class ClientGUI extends JFrame {
             public void mouseEntered(MouseEvent e) {
                 if (button.isEnabled()) {
                     button.setBackground(RETRO_FG);
-                    button.setForeground(RETRO_BG);
+                    button.setForeground(BUTTON_HOVER_FOREGROUND);
                 }
             }
 

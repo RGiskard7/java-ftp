@@ -17,6 +17,7 @@ Una implementación personalizada del Protocolo de Transferencia de Archivos (FT
   - [Arquitectura](#arquitectura)
   - [Prerrequisitos](#prerrequisitos)
   - [Instalación](#instalación)
+  - [Compilación y ejecución](#compilación-y-ejecución)
   - [Inicio Rápido](#inicio-rápido)
   - [Uso](#uso)
       - [Ejecutar el Servidor](#ejecutar-el-servidor)
@@ -218,29 +219,25 @@ EOF
 
 ### 4\. Compila el Proyecto
 
-#### Windows (PowerShell)
+Puedes usar **Maven** (`mvn compile`) o **javac con `lib/`** (sin descargar nada). Todas las formas y los comandos para ejecutar servidor, cliente y panel Admin están en [Compilación y ejecución](#compilación-y-ejecución).
+
+**Con javac y lib/ (incluye servidor, cliente y panel Admin):**
+
+**Windows (PowerShell):**
 
 ```powershell
-javac -d bin -cp "lib/commons-net-3.11.1.jar" `
-  src\FTP\Client\*.java `
-  src\FTP\Server\*.java `
-  src\FTP\Util\*.java
+if (-not (Test-Path bin)) { New-Item -ItemType Directory -Path bin }
+javac -d bin -cp "lib\*" -encoding UTF-8 src\FTP\Client\*.java src\FTP\Server\*.java src\FTP\Util\*.java src\FTP\Admin\*.java
 ```
 
-**Verificar compilación**:
-
-```powershell
-ls bin\FTP\Server\JavaFtpServer.class  # Debería existir
-```
-
-#### Linux/macOS (Bash)
+**Linux/macOS:**
 
 ```bash
-javac -d bin -cp "lib/commons-net-3.11.1.jar" \
-  src/FTP/Client/*.java \
-  src/FTP/Server/*.java \
-  src/FTP/Util/*.java
+mkdir -p bin
+javac -d bin -cp "lib/*" -encoding UTF-8 src/FTP/Client/*.java src/FTP/Server/*.java src/FTP/Util/*.java src/FTP/Admin/*.java
 ```
+
+**Verificar compilación:** `ls bin/FTP/Server/JavaFtpServer.class` (o `bin\FTP\Server\JavaFtpServer.class` en Windows).
 
 **Verificar compilación**:
 
@@ -256,7 +253,135 @@ chmod +x run-client-gui.sh
 
 ### Instalación Completa
 
-Ahora estás listo para ejecutar el servidor y el cliente. Procede a [Inicio Rápido](https://www.google.com/search?q=%23inicio-r%C3%A1pido).
+Ahora estás listo para ejecutar el servidor y el cliente. Procede a [Compilación y ejecución](#compilación-y-ejecución) para los comandos exactos, o a [Inicio Rápido](#inicio-rápido).
+
+-----
+
+## Compilación y ejecución
+
+Desde la raíz del proyecto (`java-ftp/`). En Windows usa `;` en el classpath; en Linux/macOS usa `:`.
+
+### Formas de compilar
+
+**Opción A: Maven** (descarga dependencias a `~/.m2` la primera vez)
+
+```bash
+mvn compile
+```
+
+**Opción B: javac con los JAR de `lib/`** (no descarga nada; útil si ya tienes `lib/` llena)
+
+**Windows (PowerShell):**
+
+```powershell
+if (-not (Test-Path bin)) { New-Item -ItemType Directory -Path bin }
+javac -d bin -cp "lib\*" -encoding UTF-8 src\FTP\Client\*.java src\FTP\Server\*.java src\FTP\Util\*.java src\FTP\Admin\*.java
+```
+
+**Linux/macOS:**
+
+```bash
+mkdir -p bin
+javac -d bin -cp "lib/*" -encoding UTF-8 src/FTP/Client/*.java src/FTP/Server/*.java src/FTP/Util/*.java src/FTP/Admin/*.java
+```
+
+### Ejecutar el servidor
+
+**Windows:**
+
+```powershell
+java -cp "bin;lib\*" FTP.Server.JavaFtpServer
+```
+
+**Linux/macOS:**
+
+```bash
+java -cp "bin:lib/*" FTP.Server.JavaFtpServer
+```
+
+Si tienes `server.properties` con `ftp.root.directory` y usuarios configurados, el servidor arranca sin preguntar nada.
+
+### Ejecutar el cliente (GUI)
+
+**Windows:**
+
+```powershell
+java -cp "bin;lib\*" FTP.Client.ClientGUI
+```
+
+**Linux/macOS:**
+
+```bash
+java -cp "bin:lib/*" FTP.Client.ClientGUI
+```
+
+Scripts de conveniencia: `run-client-gui.bat` (Windows) o `./run-client-gui.sh` (Linux/macOS).
+
+### Ejecutar el cliente (consola)
+
+**Windows:**
+
+```powershell
+java -cp "bin;lib\*" FTP.Client.JavaFtpClient
+```
+
+**Linux/macOS:**
+
+```bash
+java -cp "bin:lib/*" FTP.Client.JavaFtpClient
+```
+
+### Ejecutar el panel de administración (Admin GUI)
+
+Gestiona usuarios en la base SQLite (añadir, editar, activar/desactivar). No hace falta haber arrancado el servidor antes: si la base no existe, se crea al cargarla y la tabla se crea automáticamente.
+
+**Windows:**
+
+```powershell
+java -cp "bin;lib\*" FTP.Admin.AdminGUI
+```
+
+**Linux/macOS:**
+
+```bash
+java -cp "bin:lib/*" FTP.Admin.AdminGUI
+```
+
+Scripts: `run-admin-gui.bat` (Windows) o `./run-admin-gui.sh` (Linux/macOS). En la ventana, escribe la ruta del fichero de base de datos (ej. `files/ftp_users.db`) y pulsa **Cargar / Abrir**; si el fichero no existe, SQLite lo crea y el panel crea la tabla. Luego usa **Añadir usuario** para el primer usuario.
+
+### Primera vez: crear usuarios y base de datos
+
+**Si usas fichero TXT** (`ftp.users.database` vacío en `server.properties`):
+
+- El fichero `files/users/users.txt` puede no existir. **PasswordTool** crea el directorio y el fichero al añadir el primer usuario:
+
+  **Windows:**
+
+  ```powershell
+  java -cp "bin;lib\*" FTP.Server.PasswordTool adduser admin tuPassword ADMINISTRADOR files/users/users.txt
+  ```
+
+  **Linux/macOS:**
+
+  ```bash
+  java -cp "bin:lib/*" FTP.Server.PasswordTool adduser admin tuPassword ADMINISTRADOR files/users/users.txt
+  ```
+
+  Repite `adduser` para más usuarios. Perfiles: `BASICO`, `INTERMEDIO`, `ADMINISTRADOR`.
+
+**Si usas SQLite** (`ftp.users.database=files/ftp_users.db` en `server.properties`):
+
+- **Opción 1 – Panel Admin (recomendada):** Ejecuta el panel Admin (comandos arriba). En el campo de ruta escribe `files/ftp_users.db` (o la ruta que tengas en `ftp.users.database`) y pulsa **Cargar / Abrir**. Si el fichero no existe, se crea y la tabla también. Usa **Añadir usuario** para crear el primer usuario y los que quieras.
+
+- **Opción 2 – Servidor primero:** Arranca el servidor una vez con `ftp.users.database` ya configurado; el servidor crea la base y la tabla (vacía). Luego abre el panel Admin, carga esa misma ruta y añade usuarios.
+
+- **Migrar desde TXT:** Si ya tienes `files/users/users.txt` y quieres pasar a SQLite, después de crear la DB (Admin o servidor) puedes migrar con:
+
+  ```bash
+  java -cp "bin:lib/*" FTP.Server.MigrateUsersToDb files/users/users.txt files/ftp_users.db
+  ```
+
+  (En Windows: `java -cp "bin;lib\*" FTP.Server.MigrateUsersToDb files/users/users.txt files/ftp_users.db`.)
 
 -----
 
@@ -290,28 +415,32 @@ bob:secret456:INTERMEDIO
 
 ### Paso 2: Compila el Proyecto
 
-```bash
+```powershell
 # Windows (PowerShell)
 mkdir -Force bin
-javac -d bin -cp "lib/commons-net-3.11.1.jar" src\FTP\Client\*.java src\FTP\Server\*.java src\FTP\Util\*.java
-
-# Linux/macOS
-mkdir -p bin
-javac -d bin -cp "lib/commons-net-3.11.1.jar" src/FTP/Client/*.java src/FTP/Server/*.java src/FTP/Util/*.java
+javac -d bin -cp "lib\*" -encoding UTF-8 src\FTP\Client\*.java src\FTP\Server\*.java src\FTP\Util\*.java src\FTP\Admin\*.java
 ```
 
-**Resultado esperado**: Sin errores. Los archivos `.class` compilados estarán en el directorio `bin/`.
+```bash
+# Linux/macOS
+mkdir -p bin
+javac -d bin -cp "lib/*" -encoding UTF-8 src/FTP/Client/*.java src/FTP/Server/*.java src/FTP/Util/*.java src/FTP/Admin/*.java
+```
+
+**Resultado esperado**: Sin errores. Los archivos `.class` estarán en `bin/`. Para más opciones (Maven, ejecutar servidor/cliente/Admin), ver [Compilación y ejecución](#compilación-y-ejecución).
 
 ### Paso 3: Inicia el Servidor FTP
 
 Abre una ventana de terminal y ejecuta:
 
-```bash
+```powershell
 # Windows (PowerShell)
-java -cp "bin;lib/commons-net-3.11.1.jar" FTP.Server.JavaFtpServer
+java -cp "bin;lib\*" FTP.Server.JavaFtpServer
+```
 
+```bash
 # Linux/macOS (puede requerir sudo para el puerto 21)
-java -cp "bin:lib/commons-net-3.11.1.jar" FTP.Server.JavaFtpServer
+java -cp "bin:lib/*" FTP.Server.JavaFtpServer
 ```
 
 Cuando se te solicite:
@@ -327,13 +456,16 @@ Abre una **nueva ventana de terminal** (mantén el servidor en ejecución) y eli
 
 #### Opción A: Cliente GUI (Recomendado)
 
-```bash
+```powershell
 # Windows
-.\run-client-gui.bat
+java -cp "bin;lib\*" FTP.Client.ClientGUI
+# o: .\run-client-gui.bat
+```
 
+```bash
 # Linux/macOS
-chmod +x run-client-gui.sh
-./run-client-gui.sh
+java -cp "bin:lib/*" FTP.Client.ClientGUI
+# o: chmod +x run-client-gui.sh && ./run-client-gui.sh
 ```
 
 En la ventana de la GUI:
@@ -647,15 +779,17 @@ admin:hash_admin:ADMINISTRADOR
 |---|:---:|:---:|:---:|
 | LIST | ✓ | ✓ | ✓ |
 | RETR | ✓ | ✓ | ✓ |
+| SIZE | ✓ | ✓ | ✓ |
+| MDTM | ✓ | ✓ | ✓ |
 | CWD | ✓ | ✓ | ✓ |
 | CDUP | ✓ | ✓ | ✓ |
 | PWD | ✓ | ✓ | ✓ |
 | STOR | ✗ | ✓ | ✓ |
 | DELE | ✗ | ✓ | ✓ |
-| MKD | ✗ | ✓ | ✓ |
-| RMD | ✗ | ✓ | ✓ |
-| RNFR | ✗ | ✓ | ✓ |
-| RNTO | ✗ | ✓ | ✓ |
+| MKD | ✗ | ✗ | ✓ |
+| RMD | ✗ | ✗ | ✓ |
+| RNFR | ✗ | ✗ | ✓ |
+| RNTO | ✗ | ✗ | ✓ |
 
 *Los comandos no autorizados devuelven: `530 Not logged in` o el código de error apropiado.*
 

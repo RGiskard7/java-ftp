@@ -1,5 +1,6 @@
 package FTP.Admin;
 
+import FTP.Server.SqliteUserStore;
 import org.mindrot.jbcrypt.BCrypt;
 
 import javax.swing.*;
@@ -33,13 +34,14 @@ public class AdminGUI extends JFrame {
     private static final Color RETRO_SUCCESS = new Color(100, 255, 100);
     private static final Color RETRO_ERROR = new Color(255, 100, 100);
 
-    private static final String TABLE = "ftp_users";
+    private static final String TABLE = SqliteUserStore.TABLE;
+    private static final String CREATE_TABLE = SqliteUserStore.CREATE_TABLE;
 
     private JTextField dbPathField;
     private JButton loadDbButton;
     private JTable userTable;
     private DefaultTableModel tableModel;
-    private JTextArea logArea;
+    private JTextPane logArea;
     private JButton refreshButton;
     private JButton addButton;
     private JButton editButton;
@@ -128,12 +130,12 @@ public class AdminGUI extends JFrame {
     }
 
     private JPanel createSouthPanel() {
-        logArea = new JTextArea(4, 60);
+        logArea = new JTextPane();
         logArea.setEditable(false);
         logArea.setBackground(RETRO_BG);
-        logArea.setForeground(RETRO_FG);
         logArea.setFont(new Font("Consolas", Font.PLAIN, 11));
         logArea.setBorder(BorderFactory.createLineBorder(RETRO_FG, 1));
+        logArea.setPreferredSize(new Dimension(600, 80));
         JScrollPane scroll = new JScrollPane(logArea);
         JPanel panel = new JPanel(new BorderLayout());
         panel.setBackground(RETRO_HEADER_BG);
@@ -194,9 +196,15 @@ public class AdminGUI extends JFrame {
     }
 
     private void log(String msg, Color c) {
-        logArea.setForeground(c);
-        logArea.append(msg + "\n");
-        logArea.setCaretPosition(logArea.getDocument().getLength());
+        javax.swing.text.StyledDocument doc = logArea.getStyledDocument();
+        javax.swing.text.SimpleAttributeSet attr = new javax.swing.text.SimpleAttributeSet();
+        javax.swing.text.StyleConstants.setForeground(attr, c);
+        javax.swing.text.StyleConstants.setFontFamily(attr, "Consolas");
+        javax.swing.text.StyleConstants.setFontSize(attr, 11);
+        try {
+            doc.insertString(doc.getLength(), msg + "\n", attr);
+        } catch (javax.swing.text.BadLocationException ignored) { }
+        logArea.setCaretPosition(doc.getLength());
     }
 
     private void loadDbPathFromConfig() {
@@ -241,35 +249,44 @@ public class AdminGUI extends JFrame {
         return DriverManager.getConnection("jdbc:sqlite:" + f.getAbsolutePath());
     }
 
+    /** Crea la tabla ftp_users si no existe (permite usar una base nueva sin haber arrancado el servidor). */
+    private void ensureSchema(Connection conn) throws SQLException {
+        try (Statement st = conn.createStatement()) {
+            st.execute(CREATE_TABLE);
+        }
+    }
+
     private void loadUsers() {
         if (currentDbPath == null || currentDbPath.isEmpty()) {
             log("Primero cargue la base de datos (ruta + Cargar).", RETRO_ERROR);
             return;
         }
         tableModel.setRowCount(0);
-        try (Connection conn = getConnection();
-             Statement st = conn.createStatement();
-             ResultSet rs = st.executeQuery("SELECT username, profile, enabled, created_at FROM " + TABLE + " ORDER BY username")) {
-            SimpleDateFormat fmt = new SimpleDateFormat("yyyy-MM-dd HH:mm");
-            while (rs.next()) {
-                String user = rs.getString(1);
-                String profile = rs.getString(2);
-                int en = rs.getInt(3);
-                String state = en != 0 ? "Activo" : "Desactivado";
-                String created = rs.getString(4);
-                if (created != null && !created.isEmpty()) {
-                    try {
-                        long ts = Long.parseLong(created);
-                        created = fmt.format(new Date(ts));
-                    } catch (NumberFormatException ignored) {
-                        // keep as string
+        try (Connection conn = getConnection()) {
+            ensureSchema(conn);
+            try (Statement st = conn.createStatement();
+                 ResultSet rs = st.executeQuery("SELECT username, profile, enabled, created_at FROM " + TABLE + " ORDER BY username")) {
+                SimpleDateFormat fmt = new SimpleDateFormat("yyyy-MM-dd HH:mm");
+                while (rs.next()) {
+                    String user = rs.getString(1);
+                    String profile = rs.getString(2);
+                    int en = rs.getInt(3);
+                    String state = en != 0 ? "Activo" : "Desactivado";
+                    String created = rs.getString(4);
+                    if (created != null && !created.isEmpty()) {
+                        try {
+                            long ts = Long.parseLong(created);
+                            created = fmt.format(new Date(ts));
+                        } catch (NumberFormatException ignored) {
+                            // keep as string
+                        }
+                    } else {
+                        created = "-";
                     }
-                } else {
-                    created = "-";
+                    tableModel.addRow(new Object[]{user, profile, state, created});
                 }
-                tableModel.addRow(new Object[]{user, profile, state, created});
+                log("Listados " + tableModel.getRowCount() + " usuarios.", RETRO_SUCCESS);
             }
-            log("Listados " + tableModel.getRowCount() + " usuarios.", RETRO_SUCCESS);
         } catch (SQLException e) {
             log("Error: " + e.getMessage(), RETRO_ERROR);
         }
@@ -305,13 +322,15 @@ public class AdminGUI extends JFrame {
         }
         String hash = BCrypt.hashpw(password, BCrypt.gensalt());
         long now = System.currentTimeMillis();
-        try (Connection conn = getConnection();
-             PreparedStatement ps = conn.prepareStatement("INSERT INTO " + TABLE + " (username, password_hash, profile, enabled, created_at) VALUES (?,?,?,1,?)")) {
-            ps.setString(1, username);
-            ps.setString(2, hash);
-            ps.setString(3, profile);
-            ps.setString(4, String.valueOf(now));
-            ps.executeUpdate();
+        try (Connection conn = getConnection()) {
+            ensureSchema(conn);
+            try (PreparedStatement ps = conn.prepareStatement("INSERT INTO " + TABLE + " (username, password_hash, profile, enabled, created_at) VALUES (?,?,?,1,?)")) {
+                ps.setString(1, username);
+                ps.setString(2, hash);
+                ps.setString(3, profile);
+                ps.setString(4, String.valueOf(now));
+                ps.executeUpdate();
+            }
             log("Usuario '" + username + "' añadido.", RETRO_SUCCESS);
             loadUsers();
         } catch (SQLException e) {
@@ -385,9 +404,6 @@ public class AdminGUI extends JFrame {
     }
 
     public static void main(String[] args) {
-        try {
-            UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
-        } catch (Exception ignored) { }
         SwingUtilities.invokeLater(() -> {
             AdminGUI gui = new AdminGUI();
             gui.setVisible(true);

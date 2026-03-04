@@ -184,7 +184,7 @@ public class ClientGUI extends JFrame {
         panel.add(useTlsCheckBox, gbc);
 
         // Botones
-        gbc.gridx = 2; gbc.gridwidth = 2; gbc.weightx = 0;
+        gbc.gridx = 2; gbc.gridy = 3; gbc.gridwidth = 2; gbc.weightx = 0;
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
         buttonPanel.setBackground(RETRO_HEADER_BG);
 

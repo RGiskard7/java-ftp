@@ -172,11 +172,11 @@ public class FtpClientHandler implements Runnable {
 			            break;
 
 					case "FEAT":
-						sendReplyContinuation(211, "Extensions supported:");
-						sendReplyContinuation(211, " UTF8");
-						sendReplyContinuation(211, " SIZE");
-						sendReplyContinuation(211, " MDTM");
-						sendReplyContinuation(211, " TVFS");
+						sendReplyMultilineStart(211, "Extensions supported:");
+						sendReplyMultilineBody(" UTF8");
+						sendReplyMultilineBody(" SIZE");
+						sendReplyMultilineBody(" MDTM");
+						sendReplyMultilineBody(" TVFS");
 						sendReply(211, "End");
 						break;
 
@@ -351,13 +351,8 @@ public class FtpClientHandler implements Runnable {
 	 * @param usernameInput Nombre de usuario proporcionado
 	 */
 	private void handleUserCommand(String usernameInput) {
-	    UserInfo info = userStore.findByUsername(usernameInput);
-	    if (info != null && info.isEnabled()) {
-	    	usernameBuffer = usernameInput;
-	        sendReply(331, "Username okay, need password.");
-	    } else {
-	        sendReply(530, "Authentication failed.");
-	    }
+	    usernameBuffer = usernameInput;
+	    sendReply(331, "Username okay, need password.");
 	}
 
 	/**
@@ -492,6 +487,11 @@ public class FtpClientHandler implements Runnable {
 		
 		connectionMode = "PASSIVE";
 
+		if (passiveDataSocket != null) {
+			try { passiveDataSocket.close(); } catch (IOException ignored) { }
+			passiveDataSocket = null;
+		}
+
 		try {
 			int min = config.getPassivePortMin();
 			int max = config.getPassivePortMax();
@@ -514,10 +514,8 @@ public class FtpClientHandler implements Runnable {
 				passiveDataSocket = new ServerSocket(0);
 				passiveDataPort = passiveDataSocket.getLocalPort();
 			}
-			if (passiveDataPort == null)
-				passiveDataPort = passiveDataSocket.getLocalPort();
 			
-			passiveDataIp = controlSocket.getInetAddress().getHostAddress();
+			passiveDataIp = controlSocket.getLocalAddress().getHostAddress();
 
 		    // Envía la respuesta PASV al cliente
 		    p1 = passiveDataPort / 256;
@@ -682,12 +680,20 @@ public class FtpClientHandler implements Runnable {
 	 * @param message Mensaje descriptivo de la respuesta
 	 */
 	protected void sendReply(int code, String message) {
-		out.printf("%d %s%n", code, message);
+		out.print(code + " " + message + "\r\n");
+		out.flush();
 	}
 
-	/** Envía una línea de respuesta multilínea (código con guión, ej. 211-). */
-	private void sendReplyContinuation(int code, String line) {
-		out.printf("%d-%s%n", code, line);
+	/** Envía la primera línea de una respuesta multilínea (código con guión, ej. "211-Extensions"). */
+	private void sendReplyMultilineStart(int code, String line) {
+		out.print(code + "-" + line + "\r\n");
+		out.flush();
+	}
+
+	/** Envía una línea del cuerpo de una respuesta multilínea (sin código, solo texto). */
+	private void sendReplyMultilineBody(String line) {
+		out.print(line + "\r\n");
+		out.flush();
 	}
 
 	/**
@@ -700,7 +706,7 @@ public class FtpClientHandler implements Runnable {
 	private boolean checkAuthentication(UserProfile... allowedProfiles) {
 		if (currentUser == null || currentUser.getProfile() == null) {
 			Util.printRedColor("Usuario no autenticado");
-		    sendReply(530, "530 Not logged in");
+		    sendReply(530, "Not logged in.");
 		    return false;
 		}
 		

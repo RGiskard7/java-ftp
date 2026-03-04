@@ -81,7 +81,7 @@ public class PasswordTool {
         try {
             Files.createDirectories(path.getParent());
             if (!Files.exists(path)) {
-                Files.write(path, (line + "\n").getBytes(), StandardOpenOption.CREATE_NEW);
+                Files.write(path, (line + "\n").getBytes(java.nio.charset.StandardCharsets.UTF_8), StandardOpenOption.CREATE_NEW);
             } else {
                 List<String> lines = new ArrayList<>(Files.readAllLines(path));
                 boolean found = false;

@@ -28,15 +28,8 @@ import java.util.Properties;
  */
 public class MigrateUsersToDb {
 
-    private static final String TABLE = "ftp_users";
-    private static final String CREATE_TABLE =
-        "CREATE TABLE IF NOT EXISTS " + TABLE + " ("
-            + "id INTEGER PRIMARY KEY AUTOINCREMENT, "
-            + "username TEXT UNIQUE NOT NULL, "
-            + "password_hash TEXT NOT NULL, "
-            + "profile TEXT NOT NULL CHECK(profile IN ('BASICO','INTERMEDIO','ADMINISTRADOR')), "
-            + "enabled INTEGER NOT NULL DEFAULT 1, "
-            + "created_at TEXT)";
+    private static final String TABLE = SqliteUserStore.TABLE;
+    private static final String CREATE_TABLE = SqliteUserStore.CREATE_TABLE;
 
     public static void main(String[] args) {
         String txtPath = args.length >= 1 ? args[0] : "files/users/users.txt";

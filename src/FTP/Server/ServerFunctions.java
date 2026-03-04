@@ -116,17 +116,16 @@ public class ServerFunctions {
     protected void handleListCommand() {
     	Socket dataSocket = null;
     	PrintWriter dataOut = null;
-    	File dir;
-    	File[] files;
+    	boolean transferOk = false;
     	
     	handler.sendReply(150, "Here comes the directory listing.");
     	
 		try {
-			dataSocket = handler.getDataSocket(); // Obtener la conexión de datos
+			dataSocket = handler.getDataSocket();
 			dataOut = new PrintWriter(dataSocket.getOutputStream(), true);
 			
-			dir = new File(handler.getCurrentDirectory());
-			files = dir.listFiles();
+			File dir = new File(handler.getCurrentDirectory());
+			File[] files = dir.listFiles();
 			
 	        if (files == null) {
 	        	handler.sendReply(550, "Directory not found.");
@@ -136,17 +135,13 @@ public class ServerFunctions {
 	        SimpleDateFormat recentFormat = new SimpleDateFormat("MMM dd HH:mm");
 	        SimpleDateFormat oldFormat = new SimpleDateFormat("MMM dd  yyyy");
 	        long currentTime = System.currentTimeMillis();
-	        long sixMonthsInMillis = 6L * 30L * 24L * 60L * 60L * 1000L; // Aproximadamente 6 meses
+	        long sixMonthsInMillis = 6L * 30L * 24L * 60L * 60L * 1000L;
 
 	        for (File file : files) {
 	            String permissions = file.isDirectory() ? "drwxr-xr-x" : "-rw-r--r--";
-	            String owner = "ftp";
-	            String group = "ftp";
 	            long size = file.length();
 	            long lastModified = file.lastModified();
 
-	            // Usar formato con hora si el archivo fue modificado en los últimos 6 meses
-	            // Usar formato con año si el archivo es más antiguo de 6 meses
 	            String date;
 	            if (currentTime - lastModified < sixMonthsInMillis && lastModified <= currentTime) {
 	                date = recentFormat.format(new Date(lastModified));
@@ -154,12 +149,11 @@ public class ServerFunctions {
 	                date = oldFormat.format(new Date(lastModified));
 	            }
 
-	            String name = file.getName();
-
-	            String line = String.format("%s 1 %s %s %d %s %s",
-	                    permissions, owner, group, size, date, name);
+	            String line = String.format("%s 1 ftp ftp %d %s %s",
+	                    permissions, size, date, file.getName());
 	            dataOut.println(line);
 	        }
+	        transferOk = true;
 
 		} catch (IOException e) {
 			handler.sendReply(426, "Connection closed; transfer aborted.");
@@ -169,8 +163,6 @@ public class ServerFunctions {
 				dataOut.flush();
 				dataOut.close();
 			}
-			
-			//closeDataSocket();
 	        if (dataSocket != null) {
 	            try {
 	                dataSocket.close();
@@ -178,8 +170,9 @@ public class ServerFunctions {
 	            	Util.printRedColor("Error al cerrar socket de datos: " + e.getMessage());
 	            }
 	        }
-	        
-	        handler.sendReply(226, "Directory send OK."); // Se envía después de cerrar sockets
+	        if (transferOk) {
+	        	handler.sendReply(226, "Directory send OK.");
+	        }
 		}
 	}
     

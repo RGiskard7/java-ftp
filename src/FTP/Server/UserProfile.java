@@ -5,9 +5,9 @@ package FTP.Server;
  * <p>
  * Define tres niveles de permisos:
  * <ul>
- *   <li><b>BASICO:</b> Solo lectura (LIST, RETR, CWD, PWD, CDUP)</li>
- *   <li><b>INTERMEDIO:</b> Lectura/escritura (añade STOR, DELE, MKD, RMD, RNFR, RNTO)</li>
- *   <li><b>ADMINISTRADOR:</b> Acceso completo a todos los comandos</li>
+ *   <li><b>BASICO:</b> Solo lectura (LIST, RETR, SIZE, MDTM, CWD, CDUP, PWD)</li>
+ *   <li><b>INTERMEDIO:</b> Lectura/escritura (añade STOR, DELE)</li>
+ *   <li><b>ADMINISTRADOR:</b> Acceso completo (añade MKD, RMD, RNFR, RNTO)</li>
  * </ul>
  *
  * @author Eduardo Díaz Sánchez

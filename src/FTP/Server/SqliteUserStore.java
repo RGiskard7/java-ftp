@@ -16,8 +16,8 @@ import java.sql.Statement;
  */
 public class SqliteUserStore implements UserStore {
 
-    private static final String TABLE = "ftp_users";
-    private static final String CREATE_TABLE =
+    public static final String TABLE = "ftp_users";
+    public static final String CREATE_TABLE =
         "CREATE TABLE IF NOT EXISTS " + TABLE + " ("
             + "id INTEGER PRIMARY KEY AUTOINCREMENT, "
             + "username TEXT UNIQUE NOT NULL, "

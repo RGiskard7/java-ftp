@@ -1,163 +1,156 @@
-# 🚀 Guía de Inicio Rápido - FTP Java
+# Guía de Inicio Rápido — Java FTP
 
-## Paso 1: Compilar (solo una vez)
+Pasos mínimos para compilar, configurar y ejecutar servidor y cliente. Para opciones detalladas (Maven, panel Admin, FTPS, solución de problemas), consulta el [README.md](README.md).
+
+---
+
+## Requisitos
+
+- **JDK 8+** (`java -version`, `javac -version`)
+- Estar en la raíz del proyecto (`java-ftp/`)
+
+**Classpath:** En Windows usa `;` (ej. `bin;lib\*`). En Linux/macOS usa `:` (ej. `bin:lib/*`).
+
+---
+
+## 1. Compilar (una vez)
 
 ### Windows (PowerShell)
+
 ```powershell
-javac -d bin -cp "lib/commons-net-3.11.1.jar" src\FTP\Client\*.java src\FTP\Server\*.java src\FTP\Util\*.java
+if (-not (Test-Path bin)) { New-Item -ItemType Directory -Path bin }
+javac -d bin -cp "lib\*" -encoding UTF-8 src\FTP\Client\*.java src\FTP\Server\*.java src\FTP\Util\*.java src\FTP\Admin\*.java
 ```
 
 ### Linux/macOS
+
 ```bash
-javac -d bin -cp "lib/commons-net-3.11.1.jar" src/FTP/Client/*.java src/FTP/Server/*.java src/FTP/Util/*.java
+mkdir -p bin
+javac -d bin -cp "lib/*" -encoding UTF-8 src/FTP/Client/*.java src/FTP/Server/*.java src/FTP/Util/*.java src/FTP/Admin/*.java
 ```
+
+Comprueba que exista `bin/FTP/Server/JavaFtpServer.class`.
 
 ---
 
-## Paso 2: Ejecutar el Proyecto
+## 2. Configurar usuarios y servidor
 
-### 🖥️ Servidor (Consola)
+Elige **una** de estas dos opciones.
+
+### Opción A — SQLite (recomendado)
+
+1. Crea la carpeta `files` si no existe: `mkdir files` (o `mkdir -Force files` en PowerShell).
+2. Ejecuta el panel Admin:
+   - **Windows:** `java -cp "bin;lib\*" FTP.Admin.AdminGUI`
+   - **Linux/macOS:** `java -cp "bin:lib/*" FTP.Admin.AdminGUI`
+3. En el panel: ruta `files/ftp_users.db` → **Cargar / Abrir** (se crea la base y la tabla).
+4. **Añadir usuario:** nombre `admin`, contraseña la que quieras, perfil **ADMINISTRADOR**.
+5. En `server.properties` (raíz del proyecto) pon:
+   - `ftp.root.directory=files`
+   - `ftp.users.database=files/ftp_users.db`  
+   **En Windows** usa siempre `/` en las rutas, nunca `\`.
+
+### Opción B — Fichero TXT
+
+1. Crea el primer usuario (el fichero se crea solo):
+   - **Windows:** `java -cp "bin;lib\*" FTP.Server.PasswordTool adduser admin tuPassword ADMINISTRADOR files/users/users.txt`
+   - **Linux/macOS:** `java -cp "bin:lib/*" FTP.Server.PasswordTool adduser admin tuPassword ADMINISTRADOR files/users/users.txt`
+2. En `server.properties` pon `ftp.root.directory=files` y deja `ftp.users.database=` vacío.
+
+Con esto el servidor arrancará sin pedir el directorio raíz.
+
+---
+
+## 3. Arrancar el servidor
 
 **Windows:**
+
+```powershell
+java -cp "bin;lib\*" FTP.Server.JavaFtpServer
+```
+
+**Linux/macOS** (puerto 21 puede requerir `sudo`):
+
 ```bash
-java -cp "bin;lib/commons-net-3.11.1.jar" FTP.Server.JavaFtpServer
+java -cp "bin:lib/*" FTP.Server.JavaFtpServer
+```
+
+Deberías ver el banner ASCII y, si configuraste `server.properties`, el mensaje de directorio raíz y usuarios sin preguntas. Mantén esta terminal abierta.
+
+---
+
+## 4. Arrancar el cliente (GUI)
+
+En **otra** terminal:
+
+**Windows:**
+
+```powershell
+java -cp "bin;lib\*" FTP.Client.ClientGUI
 ```
 
 **Linux/macOS:**
+
 ```bash
-java -cp "bin:lib/commons-net-3.11.1.jar" FTP.Server.JavaFtpServer
+java -cp "bin:lib/*" FTP.Client.ClientGUI
 ```
 
-**¿Qué hacer?**
-1. Cuando pida el directorio raíz, escribe: `files`
-2. El servidor mostrará un banner ASCII
-3. Verás logs en tiempo real en la consola
+O usa los scripts: `run-client-gui.bat` (Windows) / `./run-client-gui.sh` (Linux/macOS).
+
+En la ventana del cliente:
+
+| Campo      | Valor                          |
+|-----------|---------------------------------|
+| **HOST**  | `localhost`                     |
+| **PORT**  | `21`                            |
+| **USER**  | `admin`                         |
+| **PASS**  | La que definiste en el paso 2   |
+| **MODE**  | `PASSIVE`                       |
+| **Use FTPS (TLS)** | Desmarcado (salvo que hayas configurado TLS en el servidor) |
+
+Pulsa **▶ CONNECT**. Deberías ver el listado de archivos.
 
 ---
 
-### 💻 Cliente (Interfaz Gráfica Retro)
+## 5. Operaciones en la GUI
 
-**Windows:**
-```bash
-.\run-client-gui.bat
-```
+| Botón        | Función                    |
+|-------------|----------------------------|
+| **↻ REFRESH** | Actualizar lista           |
+| **↑ UPLOAD**  | Subir archivo              |
+| **↓ DOWNLOAD** | Descargar seleccionado     |
+| **✕ DELETE**  | Eliminar archivo            |
+| **+ MKD**     | Crear directorio            |
+| **- RMD**     | Eliminar directorio         |
+| **✎ RENAME**  | Renombrar                   |
+| **→ CD**      | Entrar en directorio        |
+| **← CDUP**    | Directorio padre            |
+| **? PWD**     | Ver ruta actual             |
 
-**Linux/macOS:**
-```bash
-./run-client-gui.sh
-```
-
-**¿Qué hacer?**
-1. Se abre la ventana retro ámbar
-2. Completar campos de conexión:
-   - **Host:** `localhost`
-   - **Port:** `21`
-   - **User:** `admin`
-   - **Pass:** `admin789`
-   - **Mode:** `PASSIVE`
-3. Clic en **"▶ CONNECT"**
-4. ¡Navega con los botones!
-
+Doble clic en una carpeta = cambiar a ese directorio.
 
 ---
 
-## 🎮 Botones del Cliente GUI
+## Perfiles de usuario
 
-| Botón | Función |
-|-------|---------|
-| **↻ REFRESH** | Actualizar lista de archivos |
-| **↑ UPLOAD** | Subir archivo desde tu PC |
-| **↓ DOWNLOAD** | Descargar archivo seleccionado |
-| **✖ DELETE** | Eliminar archivo |
-| **+ MKD** | Crear nuevo directorio |
-| **- RMD** | Eliminar directorio vacío |
-| **✎ RENAME** | Renombrar archivo/directorio |
-| **→ CD** | Entrar a directorio |
-| **← CDUP** | Volver al directorio padre |
-| **? PWD** | Ver directorio actual |
+- **BASICO:** LIST, RETR, CWD, PWD, CDUP (solo lectura).
+- **INTERMEDIO:** Lo anterior + STOR, DELE, renombrar.
+- **ADMINISTRADOR:** Todo + MKD, RMD (gestión de directorios).
 
 ---
 
-## 📋 Usuarios de Prueba
+## Solución rápida de problemas
 
-El archivo `files/users/users.txt` debe contener:
-
-```
-alice:pass123:BASICO
-bob:secret456:INTERMEDIO
-admin:admin789:ADMINISTRADOR
-```
-
-### Permisos por Perfil:
-
-- **BASICO** 📖
-  - LIST, RETR (descargar), CWD, PWD, CDUP
-
-- **INTERMEDIO** ✏️
-  - Todo de BASICO +
-  - STOR (subir), DELE (eliminar)
-
-- **ADMINISTRADOR** 👑
-  - Acceso completo +
-  - MKD (crear dir), RMD (eliminar dir), RNFR/RNTO (renombrar)
+| Problema | Qué hacer |
+|----------|-----------|
+| Servidor pide directorio raíz | Pon `ftp.root.directory=files` (o tu ruta) en `server.properties`. En Windows usa `/` en la ruta. |
+| "Archivo de usuarios no existe" | Usa SQLite (`ftp.users.database=files/ftp_users.db`) o crea usuarios con PasswordTool; en Windows usa `/` en rutas. |
+| Puerto 21 en uso / Permission denied | En `server.properties` pon `ftp.control.port=2121` y conecta al puerto 2121. |
+| ClassNotFoundException | Usa classpath `bin;lib\*` (Windows) o `bin:lib/*` (Linux/macOS). |
+| FTPS no conecta | Marca "Use FTPS (TLS)" solo si configuraste TLS en el servidor (keystore + `server.properties`). Ver README → Habilitar FTPS (TLS). |
 
 ---
 
-## 🎨 Características Visuales del Cliente GUI
+Para compilar con Maven, ejecutar el cliente de consola, migrar usuarios TXT→SQLite o desplegar en producción, consulta el [README.md](README.md).
 
-- **Estilo:** Terminal retro ámbar/cobre
-- **Tabla de archivos** con tipo, nombre, tamaño, fecha
-- **10 botones** de operación
-- **Log** con mensajes coloreados
-- **Indicador** de directorio actual
-
----
-
-## ⚡ Comandos Alternativos (Sin Scripts)
-
-### Servidor
-```bash
-# Windows
-java -cp "bin;lib/commons-net-3.11.1.jar" FTP.Server.JavaFtpServer
-
-# Linux/macOS
-java -cp "bin:lib/commons-net-3.11.1.jar" FTP.Server.JavaFtpServer
-```
-
-### Cliente GUI
-```bash
-# Windows
-java -cp "bin;lib/commons-net-3.11.1.jar" FTP.Client.ClientGUI
-
-# Linux/macOS
-java -cp "bin:lib/commons-net-3.11.1.jar" FTP.Client.ClientGUI
-```
-
----
-
-## 🔧 Solución de Problemas
-
-### "Puerto 21 en uso"
-En Windows, el puerto 21 puede estar ocupado. Modifica `CONTROL_PORT` en `JavaFtpServer.java` a `2121` o cualquier puerto >1024.
-
-### "No se encuentra lib/commons-net"
-Asegúrate de estar en el directorio raíz del proyecto (`java-ftp/`)
-
-### "Archivo users.txt no existe"
-Crea la estructura:
-```
-files/
-  └── users/
-      └── users.txt
-```
-
-### GUI del cliente no aparece en Linux
-Asegúrate de tener entorno gráfico (X11 o Wayland) y Java con soporte Swing.
-
----
-
-## 📞 Ayuda
-
-Para más detalles, consulta el [README.md](README.md) completo.
-
-**By Eduardo Díaz Sánchez © 2025**
+**By Eduardo Díaz © 2025**

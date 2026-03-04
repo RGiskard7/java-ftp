@@ -24,6 +24,8 @@ Una implementación personalizada del Protocolo de Transferencia de Archivos (FT
       - [Ejecutar el Servidor](#ejecutar-el-servidor)
       - [Ejecutar el Cliente](#ejecutar-el-cliente)
   - [Configuración](#configuración)
+      - [Rutas en Windows](#rutas-en-windows)
+      - [Habilitar FTPS (TLS)](#habilitar-ftps-tls)
   - [Modos de Transferencia FTP](#modos-de-transferencia-ftp)
   - [Control de Acceso Basado en Roles](#control-de-acceso-basado-en-roles)
   - [Seguridad](#seguridad)
@@ -140,7 +142,7 @@ java-ftp/
 │   └── commons-net-3.11.1.jar          # Biblioteca Apache Commons Net
 ├── files/
 │   └── users/
-│       └── users.txt                   # Base de datos de credenciales de usuario
+│       └── users.txt                   # Usuarios (TXT) o usar SQLite (ftp_users.db) vía server.properties
 ├── bin/                                # Clases compiladas (generado)
 ├── [LICENSE](LICENSE)
 └── [README.md](README.md)
@@ -152,7 +154,7 @@ java-ftp/
 
   - **JDK**: 8 o superior.
   - **Shell**: PowerShell (Windows) o Bash (Linux/macOS).
-  - **Red**: El puerto 21 debe estar disponible (o modificar `CONTROL_PORT` para pruebas en puertos no privilegiados \>1024).
+  - **Red**: El puerto 21 debe estar disponible (o configurar `ftp.control.port=2121` en `server.properties` para usar un puerto no privilegiado).
 
 -----
 
@@ -192,59 +194,16 @@ mkdir -p bin files/users
 
 ### 3\. Configura los Usuarios
 
-Crea `files/users/users.txt` con usuarios iniciales:
+Puedes usar **SQLite** (recomendado) o **fichero TXT**. No crees `users.txt` a mano con contraseñas en claro: el servidor espera hashes bcrypt. La forma más sencilla es:
 
-```bash
-# Windows (PowerShell)
-@"
-admin:admin789:ADMINISTRADOR
-alice:pass123:BASICO
-bob:secret456:INTERMEDIO
-"@ | Out-File -FilePath "files\users\users.txt" -Encoding ASCII
+- **SQLite:** Ver [Primera vez: no tengo usuarios](#primera-vez-no-tengo-usuarios-ni-base-de-datos) (Opción B): panel Admin + `ftp.users.database` en `server.properties`.
+- **TXT:** En la misma sección, Opción A: `PasswordTool adduser` crea el fichero con hash. Luego en `server.properties` deja `ftp.users.database=` vacío y pon `ftp.root.directory=files`.
 
-# Linux/macOS
-cat > files/users/users.txt << 'EOF'
-admin:admin789:ADMINISTRADOR
-alice:pass123:BASICO
-bob:secret456:INTERMEDIO
-EOF
-```
-
-**Formato de Usuario**: `nombre_usuario:contraseña:PERFIL`
-
-**Perfiles Disponibles**:
-
-  - `BASICO` - Solo lectura (listar, descargar).
-  - `INTERMEDIO` - Lectura/escritura (añade subir, eliminar, renombrar).
-  - `ADMINISTRADOR` - Acceso completo.
+**Perfiles:** `BASICO` (solo lectura), `INTERMEDIO` (lectura/escritura), `ADMINISTRADOR` (acceso completo).
 
 ### 4\. Compila el Proyecto
 
-Puedes usar **Maven** (`mvn compile`) o **javac con `lib/`** (sin descargar nada). Todas las formas y los comandos para ejecutar servidor, cliente y panel Admin están en [Compilación y ejecución](#compilación-y-ejecución).
-
-**Con javac y lib/ (incluye servidor, cliente y panel Admin):**
-
-**Windows (PowerShell):**
-
-```powershell
-if (-not (Test-Path bin)) { New-Item -ItemType Directory -Path bin }
-javac -d bin -cp "lib\*" -encoding UTF-8 src\FTP\Client\*.java src\FTP\Server\*.java src\FTP\Util\*.java src\FTP\Admin\*.java
-```
-
-**Linux/macOS:**
-
-```bash
-mkdir -p bin
-javac -d bin -cp "lib/*" -encoding UTF-8 src/FTP/Client/*.java src/FTP/Server/*.java src/FTP/Util/*.java src/FTP/Admin/*.java
-```
-
-**Verificar compilación:** `ls bin/FTP/Server/JavaFtpServer.class` (o `bin\FTP\Server\JavaFtpServer.class` en Windows).
-
-**Verificar compilación**:
-
-```bash
-ls bin/FTP/Server/JavaFtpServer.class  # Debería existir
-```
+Compila una vez con **Maven** o **javac**. Los comandos exactos para compilar y para ejecutar servidor, cliente (GUI y consola) y panel Admin están en la sección [Compilación y ejecución](#compilación-y-ejecución).
 
 ### 5\. Haz los Scripts Ejecutables (solo Linux/macOS)
 
@@ -382,39 +341,12 @@ java -cp "bin:lib/*" FTP.Admin.AdminGUI
 
 Scripts: `run-admin-gui.bat` (Windows) o `./run-admin-gui.sh` (Linux/macOS). En la ventana, escribe la ruta del fichero de base de datos (ej. `files/ftp_users.db`) y pulsa **Cargar / Abrir**; si el fichero no existe, SQLite lo crea y el panel crea la tabla. Luego usa **Añadir usuario** para el primer usuario.
 
-### Primera vez: crear usuarios y base de datos
+### Migrar usuarios de TXT a SQLite
 
-**Si usas fichero TXT** (`ftp.users.database` vacío en `server.properties`):
+Si ya tienes `files/users/users.txt` y quieres pasar a SQLite: crea la base con el panel Admin (Cargar `files/ftp_users.db`) y luego ejecuta:
 
-- El fichero `files/users/users.txt` puede no existir. **PasswordTool** crea el directorio y el fichero al añadir el primer usuario:
-
-  **Windows:**
-
-  ```powershell
-  java -cp "bin;lib\*" FTP.Server.PasswordTool adduser admin tuPassword ADMINISTRADOR files/users/users.txt
-  ```
-
-  **Linux/macOS:**
-
-  ```bash
-  java -cp "bin:lib/*" FTP.Server.PasswordTool adduser admin tuPassword ADMINISTRADOR files/users/users.txt
-  ```
-
-  Repite `adduser` para más usuarios. Perfiles: `BASICO`, `INTERMEDIO`, `ADMINISTRADOR`.
-
-**Si usas SQLite** (`ftp.users.database=files/ftp_users.db` en `server.properties`):
-
-- **Opción 1 – Panel Admin (recomendada):** Ejecuta el panel Admin (comandos arriba). En el campo de ruta escribe `files/ftp_users.db` (o la ruta que tengas en `ftp.users.database`) y pulsa **Cargar / Abrir**. Si el fichero no existe, se crea y la tabla también. Usa **Añadir usuario** para crear el primer usuario y los que quieras.
-
-- **Opción 2 – Servidor primero:** Arranca el servidor una vez con `ftp.users.database` ya configurado; el servidor crea la base y la tabla (vacía). Luego abre el panel Admin, carga esa misma ruta y añade usuarios.
-
-- **Migrar desde TXT:** Si ya tienes `files/users/users.txt` y quieres pasar a SQLite, después de crear la DB (Admin o servidor) puedes migrar con:
-
-  ```bash
-  java -cp "bin:lib/*" FTP.Server.MigrateUsersToDb files/users/users.txt files/ftp_users.db
-  ```
-
-  (En Windows: `java -cp "bin;lib\*" FTP.Server.MigrateUsersToDb files/users/users.txt files/ftp_users.db`.)
+- **Windows:** `java -cp "bin;lib\*" FTP.Server.MigrateUsersToDb files/users/users.txt files/ftp_users.db`
+- **Linux/macOS:** `java -cp "bin:lib/*" FTP.Server.MigrateUsersToDb files/users/users.txt files/ftp_users.db`
 
 -----
 
@@ -424,27 +356,14 @@ Scripts: `run-admin-gui.bat` (Windows) o `./run-admin-gui.sh` (Linux/macOS). En 
 
 Sigue estos pasos para poner en marcha el servidor y el cliente FTP:
 
-### Paso 1: Configura las Credenciales de Usuario
+### Paso 1: Configura usuarios y server.properties
 
-Crea la estructura de directorios necesaria y el archivo de usuarios:
+Necesitas al menos un usuario y el directorio raíz configurados. Dos opciones:
 
-```bash
-# Windows (PowerShell)
-mkdir -Force files\users
-New-Item -Path "files\users\users.txt" -ItemType File -Force
+- **Opción rápida (SQLite):** Crea la carpeta `files`, compila (Paso 2), ejecuta el panel Admin (`java -cp "bin;lib\*" FTP.Admin.AdminGUI` en Windows o `bin:lib/*` en Linux/macOS), carga `files/ftp_users.db`, añade usuario `admin`. En `server.properties` pon `ftp.root.directory=files` y `ftp.users.database=files/ftp_users.db`. En Windows usa `/` en las rutas.
+- **Opción TXT:** Compila, ejecuta `PasswordTool adduser admin tuPassword ADMINISTRADOR files/users/users.txt` (ver [Primera vez: no tengo usuarios](#primera-vez-no-tengo-usuarios-ni-base-de-datos)), y en `server.properties` pon `ftp.root.directory=files` y deja `ftp.users.database=` vacío.
 
-# Linux/macOS
-mkdir -p files/users
-touch files/users/users.txt
-```
-
-Añade las credenciales de usuario a `files/users/users.txt`:
-
-```text
-admin:admin789:ADMINISTRADOR
-alice:pass123:BASICO
-bob:secret456:INTERMEDIO
-```
+Así el servidor arrancará sin pedir el directorio raíz y aceptará el login.
 
 ### Paso 2: Compila el Proyecto
 
@@ -476,12 +395,7 @@ java -cp "bin;lib\*" FTP.Server.JavaFtpServer
 java -cp "bin:lib/*" FTP.Server.JavaFtpServer
 ```
 
-Cuando se te solicite:
-
-1.  Introduce el directorio raíz: `files`
-2.  El servidor mostrará: `✓ Servidor escuchando en el puerto 21`
-
-**Mantén esta terminal abierta** - el servidor debe ejecutarse continuamente.
+Si en `server.properties` tienes `ftp.root.directory` definido (ej. `files`), el servidor arranca sin preguntar. Si no, te pedirá el directorio raíz (ej. `files`). Mantén esta terminal abierta.
 
 ### Paso 4: Inicia el Cliente FTP
 
@@ -506,20 +420,22 @@ En la ventana de la GUI:
 1.  **Host**: `localhost`
 2.  **Puerto**: `21`
 3.  **Usuario**: `admin`
-4.  **Contraseña**: `admin789`
+4.  **Contraseña**: la que definiste al crear el usuario (PasswordTool o panel Admin)
 5.  **Modo**: Selecciona `PASSIVE`
-6.  Haz clic en **"▶ CONNECT"**
+6.  **Use FTPS (TLS)**: déjalo desmarcado salvo que hayas configurado TLS en el servidor (ver [Habilitar FTPS (TLS)](#habilitar-ftps-tls))
+7.  Haz clic en **"▶ CONNECT"**
 
 Deberías ver un mensaje de éxito en verde y la lista de archivos se cargará.
 
 #### Opción B: Cliente de Consola
 
+```powershell
+# Windows
+java -cp "bin;lib\*" FTP.Client.JavaFtpClient
+```
 ```bash
-# Windows (PowerShell)
-java -cp "bin;lib/commons-net-3.11.1.jar" FTP.Client.JavaFtpClient
-
 # Linux/macOS
-java -cp "bin:lib/commons-net-3.11.1.jar" FTP.Client.JavaFtpClient
+java -cp "bin:lib/*" FTP.Client.JavaFtpClient
 ```
 
 Cuando se te solicite:
@@ -527,7 +443,7 @@ Cuando se te solicite:
 1.  **Servidor**: `localhost` (pulsa Enter)
 2.  **Puerto**: `21` (pulsa Enter)
 3.  **Usuario**: `admin`
-4.  **Contraseña**: `admin789`
+4.  **Contraseña**: la que configuraste para ese usuario
 5.  **Modo**: `1` (para PASIVO)
 
 ### Paso 5: Verifica la Conexión
@@ -541,11 +457,13 @@ Deberías ver:
 
 | Problema | Solución |
 |---|---|
-| `Address already in use` | El puerto 21 está ocupado. Cambia `CONTROL_PORT` en [JavaFtpServer.java](src/FTP/Server/JavaFtpServer.java) línea 41 a `2121`. |
-| `Permission denied` (Linux/macOS) | Ejecuta el servidor con `sudo` o usa un puerto \>1024. |
-| `ClassNotFoundException` | Verifica que `commons-net-3.11.1.jar` exista en el directorio `lib/`. |
-| `Connection refused` | Asegúrate de que el servidor esté en ejecución y escuchando en el puerto correcto. |
-| Fallo de autenticación | Comprueba que `files/users/users.txt` exista con el formato correcto. |
+| `Address already in use` | Puerto 21 ocupado. En `server.properties` pon `ftp.control.port=2121`. |
+| `Permission denied` (Linux/macOS) | Usa `sudo` o `ftp.control.port=2121` en `server.properties`. |
+| `ClassNotFoundException` | Usa classpath `bin;lib\*` (Windows) o `bin:lib/*` (Linux/macOS). Ver [Compilación y ejecución](#compilación-y-ejecución). |
+| `Connection refused` | Servidor no está en marcha o firewall/puerto incorrecto. |
+| Servidor pide directorio raíz | Define `ftp.root.directory` en `server.properties` (en Windows usa `/` en la ruta). |
+| Error "Archivo de usuarios no existe" | Define `ftp.users.database` para SQLite o crea `files/users/users.txt`; en Windows usa `/` en rutas. |
+| FTPS no conecta | Configura TLS en el servidor: [Habilitar FTPS (TLS)](#habilitar-ftps-tls). |
 
 ### Próximos Pasos
 
@@ -560,23 +478,10 @@ Deberías ver:
 
 ### Ejecutar el Servidor
 
-#### Iniciar el Servidor
+Los comandos con classpath completo están en [Compilación y ejecución](#compilación-y-ejecución). Resumen:
 
-**Windows (PowerShell):**
-
-```powershell
-java -cp "bin;lib/commons-net-3.11.1.jar" FTP.Server.JavaFtpServer
-```
-
-**Linux/macOS:**
-
-```bash
-# Puerto estándar 21 (requiere sudo)
-sudo java -cp "bin:lib/commons-net-3.11.1.jar" FTP.Server.JavaFtpServer
-
-# Alternativa: Puerto no privilegiado (cambia CONTROL_PORT a 2121 primero)
-java -cp "bin:lib/commons-net-3.11.1.jar" FTP.Server.JavaFtpServer
-```
+**Windows:** `java -cp "bin;lib\*" FTP.Server.JavaFtpServer`  
+**Linux/macOS:** `java -cp "bin:lib/*" FTP.Server.JavaFtpServer` (puerto 21 puede requerir `sudo`; o configura `ftp.control.port=2121` en `server.properties`).
 
 #### Flujo de Inicio del Servidor
 
@@ -592,8 +497,8 @@ java -cp "bin:lib/commons-net-3.11.1.jar" FTP.Server.JavaFtpServer
                │
 ┌──────────────▼──────────────────────┐
 │   3. Validar Estructura             │
-│      ✓ files/ existe                │
-│      ✓ files/users/users.txt existe │
+│      ✓ Directorio raíz existe      │
+│      ✓ Usuarios: SQLite o TXT       │
 └──────────────┬──────────────────────┘
                │
 ┌──────────────▼──────────────────────┐
@@ -622,14 +527,9 @@ java -cp "bin:lib/commons-net-3.11.1.jar" FTP.Server.JavaFtpServer
 
 #### Notas para Despliegue en Producción
 
-**Para uso en producción** (no recomendado - ver [Seguridad](https://www.google.com/search?q=%23seguridad)):
+**Para uso en producción** (ver [Seguridad](#seguridad)):
 
-1.  **Cambiar Puerto por Defecto** (Linux/macOS):
-
-    ```bash
-    # Editar src/FTP/Server/JavaFtpServer.java
-    private static final int CONTROL_PORT = 2121;  // Usar un puerto no privilegiado
-    ```
+1.  **Cambiar puerto** (evitar privilegios en Unix): en `server.properties` pon `ftp.control.port=2121`.
 
 2.  **Ejecutar como Servicio del Sistema**:
 
@@ -647,23 +547,16 @@ java -cp "bin:lib/commons-net-3.11.1.jar" FTP.Server.JavaFtpServer
     sudo ufw allow 1024:65535/tcp  # Puertos para modo pasivo
     ```
 
-**Nota**: En sistemas Unix, vincularse al puerto 21 requiere privilegios de root/sudo. Para desarrollo/pruebas, modifica `CONTROL_PORT` en [JavaFtpServer.java](src/FTP/Server/JavaFtpServer.java) línea 41 a un puerto \>1024 (ej. `2121`).
+**Nota**: En Unix el puerto 21 requiere root/sudo. Para desarrollo, configura `ftp.control.port=2121` en `server.properties`.
 
 ### Ejecutar el Cliente
 
+Comandos completos en [Compilación y ejecución](#compilación-y-ejecución).
+
 #### Modo Consola
 
-**PowerShell:**
-
-```powershell
-java -cp "bin;lib/commons-net-3.11.1.jar" FTP.Client.JavaFtpClient
-```
-
-**Linux/macOS:**
-
-```bash
-java -cp "bin:lib/commons-net-3.11.1.jar" FTP.Client.JavaFtpClient
-```
+**Windows:** `java -cp "bin;lib\*" FTP.Client.JavaFtpClient`  
+**Linux/macOS:** `java -cp "bin:lib/*" FTP.Client.JavaFtpClient`
 
 ##### Flujo de Conexión en Consola
 
@@ -689,23 +582,8 @@ java -cp "bin:lib/commons-net-3.11.1.jar" FTP.Client.JavaFtpClient
 
 #### Modo GUI
 
-**PowerShell:**
-
-```powershell
-java -cp "bin;lib/commons-net-3.11.1.jar" FTP.Client.ClientGUI
-
-# O usa el script de conveniencia:
-.\run-client-gui.bat
-```
-
-**Linux/macOS:**
-
-```bash
-java -cp "bin:lib/commons-net-3.11.1.jar" FTP.Client.ClientGUI
-
-# O usa el script de conveniencia:
-./run-client-gui.sh
-```
+**Windows:** `java -cp "bin;lib\*" FTP.Client.ClientGUI` (o `run-client-gui.bat`)  
+**Linux/macOS:** `java -cp "bin:lib/*" FTP.Client.ClientGUI` (o `./run-client-gui.sh`)
 
 ##### Flujo de Conexión en la GUI
 
@@ -717,6 +595,59 @@ java -cp "bin:lib/commons-net-3.11.1.jar" FTP.Client.ClientGUI
 -----
 
 ## Configuración
+
+El servidor se configura mediante el archivo **`server.properties`** en la raíz del proyecto.
+
+### Rutas en Windows
+
+En `server.properties`, **usa siempre `/` (barra normal) en las rutas, nunca `\`**. En Java, el archivo de propiedades trata `\` como carácter de escape, por lo que `C:\Users\...` se lee mal. Ejemplo correcto:
+
+```properties
+ftp.root.directory=C:/Users/elija/Desktop/servidorFTP
+ftp.users.database=files/ftp_users.db
+```
+
+### Propiedades principales
+
+| Propiedad | Descripción |
+|-----------|-------------|
+| `ftp.control.port` | Puerto de control (por defecto 21). |
+| `ftp.root.directory` | Directorio raíz del servidor. Si está definido, el servidor no pide el root al arrancar. |
+| `ftp.users.database` | Ruta a la base SQLite de usuarios. Si está definida, se usa SQLite y se ignora `ftp.users.file`. |
+| `ftp.users.file` | Ruta al fichero TXT de usuarios (solo se usa si `ftp.users.database` está vacío). |
+
+### Habilitar FTPS (TLS)
+
+Para que el cliente pueda conectar con **«Use FTPS (TLS)»** marcado, el servidor debe tener TLS configurado:
+
+1. **Generar un keystore** (una vez) en la raíz del proyecto:
+
+   **Windows (PowerShell):**
+   ```powershell
+   keytool -genkeypair -alias ftp -keyalg RSA -keysize 2048 -storetype PKCS12 -keystore ftp.p12 -validity 3650 -storepass changeit -dname "CN=FTP Server, O=Dev, L=Local, C=ES"
+   ```
+
+   **Linux/macOS:**
+   ```bash
+   keytool -genkeypair -alias ftp -keyalg RSA -keysize 2048 -storetype PKCS12 -keystore ftp.p12 -validity 3650 -storepass changeit -dname "CN=FTP Server, O=Dev, L=Local, C=ES"
+   ```
+
+   Se crea el fichero `ftp.p12`. La contraseña por defecto es `changeit`.
+
+2. **Configurar en `server.properties`** (descomentar o añadir):
+
+   ```properties
+   ftp.tls.enabled=true
+   ftp.tls.keystore.path=ftp.p12
+   ftp.tls.keystore.password=changeit
+   ftp.tls.required=false
+   ```
+
+   Si `ftp.tls.keystore.path` es una ruta absoluta en Windows, usa `/`: por ejemplo `C:/ruta/al/ftp.p12`.
+
+3. **Reiniciar el servidor**. A partir de entonces el cliente puede marcar «Use FTPS (TLS)» y conectarse cifrado.
+
+Con `ftp.tls.required=false` las conexiones sin TLS siguen permitidas. Si quieres exigir siempre FTPS, pon `ftp.tls.required=true`.
 
 ### Configuración de Usuarios
 
@@ -732,25 +663,9 @@ ftp.users.database=files/ftp_users.db
 
 Si el fichero no existe, el servidor crea la base y la tabla al iniciar. Los usuarios tienen un flag `enabled` (activar/desactivar sin borrar).
 
-- **Migración desde el fichero TXT**: una vez configurado SQLite, migra los usuarios existentes con:
-  ```bash
-  java -cp "bin:lib/commons-net-3.11.1.jar:lib/jbcrypt-0.4.jar:lib/sqlite-jdbc-3.44.1.0.jar" FTP.Server.MigrateUsersToDb files/users/users.txt files/ftp_users.db
-  ```
-  (El segundo argumento es opcional; si se omite, se usa `ftp.users.database` de `server.properties` o `files/ftp_users.db` por defecto.)
+- **Migración desde el fichero TXT:** `java -cp "bin:lib/*" FTP.Server.MigrateUsersToDb files/users/users.txt files/ftp_users.db` (Windows: `bin;lib\*`). El segundo argumento es opcional.
 
-- **Panel de administración**: para gestionar usuarios (añadir, editar, activar/desactivar) usa la aplicación gráfica:
-  ```bash
-  # Linux/macOS
-  ./run-admin-gui.sh
-
-  # Windows
-  run-admin-gui.bat
-  ```
-  O con classpath manual:
-  ```bash
-  java -cp "bin:lib/commons-net-3.11.1.jar:lib/jbcrypt-0.4.jar:lib/sqlite-jdbc-3.44.1.0.jar" FTP.Admin.AdminGUI
-  ```
-  El panel lee `server.properties` (desde el directorio de trabajo) para obtener `ftp.users.database`; si no está definido, puedes indicar la ruta del `.db` en la ventana o abrirla con el botón "Cargar / Abrir".
+- **Panel de administración:** ejecuta `java -cp "bin:lib/*" FTP.Admin.AdminGUI` (Windows: `bin;lib\*`) o los scripts `run-admin-gui.sh` / `run-admin-gui.bat`. El panel lee `ftp.users.database` de `server.properties` si existe; si no, indica la ruta del `.db` en la ventana.
 
 #### Opción 2: Fichero TXT (retrocompatibilidad)
 
@@ -769,11 +684,8 @@ nombre_usuario:hash_bcrypt:PERFIL
 
 **Perfiles**: `BASICO`, `INTERMEDIO`, `ADMINISTRADOR`
 
-Para generar hashes sin escribir contraseñas en claro, usa **PasswordTool**:
-
-```bash
-java -cp "bin:lib/commons-net-3.11.1.jar:lib/jbcrypt-0.4.jar" FTP.Server.PasswordTool adduser miUsuario miPassword ADMINISTRADOR files/users/users.txt
-```
+Para generar hashes sin escribir contraseñas en claro, usa **PasswordTool:**  
+`java -cp "bin:lib/*" FTP.Server.PasswordTool adduser miUsuario miPassword ADMINISTRADOR files/users/users.txt` (Windows: `bin;lib\*`).
 
 **Ejemplo de usuarios (TXT):**
 
@@ -849,19 +761,14 @@ Para entornos muy sensibles se recomienda además: FTPS obligatorio (`ftp.tls.re
 Para ejecutar el servidor como servicio sin interacción por consola:
 
 1. **Configuración completa en `server.properties`**
-   - `ftp.root.directory`: directorio raíz absoluto (ej. `/var/ftp`).
-   - `ftp.users.file`: ruta al fichero de usuarios (formato `username:bcryptHash:profile`).
-   - Si ambos están definidos, el servidor no pedirá nada por stdin (modo daemon).
+   - `ftp.root.directory`: directorio raíz absoluto (ej. `/var/ftp`; en Windows usar `/` en la ruta).
+   - `ftp.users.database` (SQLite) o `ftp.users.file` (TXT). Si están definidos, el servidor arranca sin preguntar (modo daemon).
 
-2. **Crear usuarios con PasswordTool** (no escribir contraseñas en claro):
-   ```bash
-   java -cp "bin:lib/commons-net-3.11.1.jar:lib/jbcrypt-0.4.jar" FTP.Server.PasswordTool adduser miUsuario miPassword ADMINISTRADOR files/users/users.txt
-   ```
+2. **Crear usuarios**: con SQLite usa el panel Admin; con TXT usa PasswordTool:  
+   `java -cp "bin:lib/*" FTP.Server.PasswordTool adduser miUsuario miPassword ADMINISTRADOR files/users/users.txt`
 
 3. **TLS (opcional)**  
-   - Generar keystore PKCS12:  
-     `keytool -genkeypair -alias ftp -keyalg RSA -keysize 2048 -storetype PKCS12 -keystore ftp.p12 -validity 3650`  
-   - En `server.properties`: `ftp.tls.enabled=true`, `ftp.tls.keystore.path=ruta/al/ftp.p12`, `ftp.tls.keystore.password=...`.
+   - Ver [Habilitar FTPS (TLS)](#habilitar-ftps-tls) para generar keystore y configurar `server.properties`.
 
 4. **Firewall**  
    - Abrir solo el puerto de control (ej. 21 o 2121) y el rango de puertos pasivos configurado en `ftp.passive.port.range` (ej. `50000-50100`).
@@ -882,13 +789,7 @@ El servidor admite **graceful shutdown**: al recibir SIGINT/SIGTERM deja de acep
 
 ### Permiso Denegado en el Puerto 21 (Linux/macOS)
 
-```bash
-# Opción 1: Ejecutar con sudo (no recomendado para desarrollo)
-sudo java -cp "bin:lib/commons-net-3.11.1.jar" FTP.Server.JavaFtpServer
-
-# Opción 2: Usar un puerto no privilegiado (recomendado)
-# Modifica CONTROL_PORT en JavaFtpServer.java a 2121
-```
+Ejecuta con `sudo` o configura `ftp.control.port=2121` en `server.properties` y usa ese puerto (sin privilegios).
 
 ### Conexión Rechazada (Connection Refused)
 
@@ -898,22 +799,20 @@ sudo java -cp "bin:lib/commons-net-3.11.1.jar" FTP.Server.JavaFtpServer
 
 ### Fallo de Autenticación
 
-  - Verifica que el fichero de usuarios exista (por defecto `files/users/users.txt`) y tenga formato `username:bcryptHash:profile` (una línea por usuario). Las contraseñas deben estar hasheadas con bcrypt; usa `PasswordTool adduser` para añadir usuarios.
+  - Verifica que el fichero de usuarios exista (por defecto `files/users/users.txt`) o que `ftp.users.database` apunte a una base SQLite con usuarios. Formato TXT: `username:bcryptHash:profile`; usa `PasswordTool adduser` para generar hashes.
   - Líneas vacías o que empiezan por `#` se ignoran. El perfil debe ser `BASICO`, `INTERMEDIO` o `ADMINISTRADOR`.
+
+### Rutas no detectadas en Windows
+
+Si el servidor no encuentra el directorio raíz o la base de datos aunque estén en `server.properties`, usa **`/`** en lugar de **`\`** en todas las rutas. Ver [Rutas en Windows](#rutas-en-windows).
+
+### FTPS no conecta
+
+Si con «Use FTPS (TLS)» el cliente falla: el servidor debe tener TLS habilitado (keystore y propiedades en `server.properties`). Ver [Habilitar FTPS (TLS)](#habilitar-ftps-tls).
 
 ### Errores de Compilación
 
-```bash
-# Verificar la versión de JDK (8+)
-java -version
-
-# Con Maven
-mvn compile
-
-# Sin Maven: asegurarse de tener commons-net y jbcrypt en lib/
-ls lib/commons-net-3.11.1.jar lib/jbcrypt-0.4.jar
-javac -d bin -cp "lib/commons-net-3.11.1.jar:lib/jbcrypt-0.4.jar" src/FTP/Client/*.java src/FTP/Server/*.java src/FTP/Util/*.java
-```
+Comprueba JDK 8+ (`java -version`). Compila con `mvn compile` o con `javac -d bin -cp "lib/*" ...`; ver [Compilación y ejecución](#compilación-y-ejecución). Asegúrate de tener en `lib/` al menos: `commons-net-3.11.1.jar`, `jbcrypt-0.4.jar`, `sqlite-jdbc-3.44.1.0.jar`.
 
 -----
 

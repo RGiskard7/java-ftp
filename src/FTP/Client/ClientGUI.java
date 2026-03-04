@@ -129,46 +129,39 @@ public class ClientGUI extends JFrame {
         Font labelFont = new Font("Consolas", Font.BOLD, 12);
         Font fieldFont = new Font("Consolas", Font.PLAIN, 12);
 
-        // Host
-        gbc.gridx = 0; gbc.gridy = 0;
-        JLabel hostLabel = createStyledLabel("HOST:", labelFont);
-        panel.add(hostLabel, gbc);
+        // Row 0: HOST + PORT
+        gbc.gridx = 0; gbc.gridy = 0; gbc.weightx = 0; gbc.gridwidth = 1;
+        panel.add(createStyledLabel("HOST:", labelFont), gbc);
 
         gbc.gridx = 1; gbc.weightx = 1.0;
         hostField = createStyledTextField("localhost", fieldFont);
         panel.add(hostField, gbc);
 
-        // Puerto
         gbc.gridx = 2; gbc.weightx = 0;
-        JLabel portLabel = createStyledLabel("PORT:", labelFont);
-        panel.add(portLabel, gbc);
+        panel.add(createStyledLabel("PORT:", labelFont), gbc);
 
         gbc.gridx = 3; gbc.weightx = 0.3;
         portField = createStyledTextField("21", fieldFont);
         panel.add(portField, gbc);
 
-        // Usuario
+        // Row 1: USER + PASS
         gbc.gridx = 0; gbc.gridy = 1; gbc.weightx = 0;
-        JLabel userLabel = createStyledLabel("USER:", labelFont);
-        panel.add(userLabel, gbc);
+        panel.add(createStyledLabel("USER:", labelFont), gbc);
 
         gbc.gridx = 1; gbc.weightx = 1.0;
         usernameField = createStyledTextField("", fieldFont);
         panel.add(usernameField, gbc);
 
-        // Contraseña
         gbc.gridx = 2; gbc.weightx = 0;
-        JLabel passLabel = createStyledLabel("PASS:", labelFont);
-        panel.add(passLabel, gbc);
+        panel.add(createStyledLabel("PASS:", labelFont), gbc);
 
         gbc.gridx = 3; gbc.weightx = 0.3;
         passwordField = createStyledPasswordField(fieldFont);
         panel.add(passwordField, gbc);
 
-        // Modo
+        // Row 2: MODE + TLS checkbox + buttons
         gbc.gridx = 0; gbc.gridy = 2; gbc.weightx = 0;
-        JLabel modeLabel = createStyledLabel("MODE:", labelFont);
-        panel.add(modeLabel, gbc);
+        panel.add(createStyledLabel("MODE:", labelFont), gbc);
 
         gbc.gridx = 1; gbc.weightx = 1.0;
         String[] modes = {"PASSIVE", "ACTIVE"};
@@ -176,15 +169,17 @@ public class ClientGUI extends JFrame {
         styleComboBox(modeCombo, fieldFont);
         panel.add(modeCombo, gbc);
 
+        gbc.gridx = 2; gbc.weightx = 0;
         useTlsCheckBox = new JCheckBox("Use FTPS (TLS)");
         useTlsCheckBox.setForeground(RETRO_FG);
         useTlsCheckBox.setBackground(RETRO_HEADER_BG);
         useTlsCheckBox.setFont(fieldFont);
-        gbc.gridx = 2; gbc.gridy = 2; gbc.gridwidth = 1;
         panel.add(useTlsCheckBox, gbc);
 
-        // Botones
+        // Row 3: buttons right-aligned spanning columns 2-3
         gbc.gridx = 2; gbc.gridy = 3; gbc.gridwidth = 2; gbc.weightx = 0;
+        gbc.fill = GridBagConstraints.NONE;
+        gbc.anchor = GridBagConstraints.EAST;
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
         buttonPanel.setBackground(RETRO_HEADER_BG);
 

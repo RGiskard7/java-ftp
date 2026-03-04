@@ -18,6 +18,7 @@ Una implementación personalizada del Protocolo de Transferencia de Archivos (FT
   - [Prerrequisitos](#prerrequisitos)
   - [Instalación](#instalación)
   - [Compilación y ejecución](#compilación-y-ejecución)
+      - [Primera vez: no tengo usuarios ni base de datos](#primera-vez-no-tengo-usuarios-ni-base-de-datos)
   - [Inicio Rápido](#inicio-rápido)
   - [Uso](#uso)
       - [Ejecutar el Servidor](#ejecutar-el-servidor)
@@ -260,6 +261,38 @@ Ahora estás listo para ejecutar el servidor y el cliente. Procede a [Compilaci�
 ## Compilación y ejecución
 
 Desde la raíz del proyecto (`java-ftp/`). En Windows usa `;` en el classpath; en Linux/macOS usa `:`.
+
+### Primera vez: no tengo usuarios ni base de datos
+
+Tienes **dos opciones**. Elige una.
+
+---
+
+**Opción A – Usar fichero TXT (más rápido)**
+
+1. Compila (una vez): `mvn compile` o el `javac` de abajo.
+2. Crea el primer usuario; el fichero y la carpeta se crean solos:
+   - **Windows:**  
+     `java -cp "bin;lib\*" FTP.Server.PasswordTool adduser admin tuPassword ADMINISTRADOR files/users/users.txt`
+   - **Linux/macOS:**  
+     `java -cp "bin:lib/*" FTP.Server.PasswordTool adduser admin tuPassword ADMINISTRADOR files/users/users.txt`
+3. En `server.properties` deja `ftp.users.database=` vacío y pon `ftp.root.directory=files` (o la ruta que quieras).
+4. Arranca el servidor y conecta con usuario `admin` y contraseña `tuPassword`.
+
+---
+
+**Opción B – Usar SQLite (recomendado)**
+
+1. Compila (una vez): `mvn compile` o el `javac` de abajo.
+2. Arranca el panel Admin:
+   - **Windows:** `java -cp "bin;lib\*" FTP.Admin.AdminGUI`
+   - **Linux/macOS:** `java -cp "bin:lib/*" FTP.Admin.AdminGUI`
+3. En el panel: en el campo de ruta escribe `files/ftp_users.db` y pulsa **Cargar / Abrir**. La base y la tabla se crean solas. (Si la carpeta `files` no existe, créala antes: `mkdir files`.)
+4. Pulsa **Añadir usuario**: nombre `admin`, contraseña la que quieras, perfil **ADMINISTRADOR**. Guardar.
+5. En `server.properties` pon `ftp.users.database=files/ftp_users.db` y `ftp.root.directory=files` (o la ruta que quieras).
+6. Arranca el servidor y conecta con ese usuario.
+
+---
 
 ### Formas de compilar
 

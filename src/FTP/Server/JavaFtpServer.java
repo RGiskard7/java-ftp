@@ -57,19 +57,12 @@ public class JavaFtpServer {
 	private static volatile ServerSocket serverRef = null;
 
 	/**
-	 * Verifica la existencia de directorios y archivos necesarios para el servidor.
-	 * Valida que existan la carpeta 'files' y el archivo 'users.txt'.
+	 * Verifica la existencia del directorio base 'files'.
 	 */
-    private static void checkDirs() {
+    private static void checkFilesDir() {
 		File dir = new File(FILES_DIR);
 		if (!dir.exists() || !dir.isDirectory()) {
 			Util.printRedColor("\nERROR CRÍTICO: La carpeta 'files' no existe en la raiz del programa");
-			return;
-		}
-		
-		File file = new File(USERS_FILE);
-		if (!file.exists() || !file.isFile()) {
-			Util.printRedColor("\nERROR CRÍTICO: El fichero 'users.txt' no se encuentra en la carpeta 'file'");
 		}
     }
 
@@ -134,65 +127,57 @@ public class JavaFtpServer {
             config.loadFromFile("server.properties");
             Util.printGreenColor("\n✓ Configuración cargada desde server.properties");
             serverPort = config.getControlPort();
-            usersFilePath = config.getUsersFile();
             FTP.Util.FileLogger.setVerbose(config.isVerboseLogging());
             FTP.Util.FileLogger.setRotation(config.getLogMaxSizeBytes(), config.getLogMaxBackupFiles());
-
-            if (!config.getRootDirectory().isEmpty()) {
-                dirRoot = config.getRootDirectory();
-                File rootFile = new File(dirRoot);
-                if (!rootFile.exists() || !rootFile.isDirectory()) {
-                    Util.printRedColor("\nERROR: Directorio raíz no existe: " + dirRoot);
-                    FTP.Util.FileLogger.error("Directorio raíz no existe: " + dirRoot);
-                    return;
-                }
-                String dbPath = config.getUsersDatabase();
-                if (dbPath != null && !dbPath.isEmpty()) {
-                    File dbFile = new File(dbPath);
-                    try {
-                        if (!dbFile.exists()) {
-                            File parent = dbFile.getParentFile();
-                            if (parent != null) parent.mkdirs();
-                        }
-                        SqliteUserStore sqliteStore = new SqliteUserStore(dbPath);
-                        sqliteStore.initSchema();
-                        userStore = sqliteStore;
-                        Util.printGreenColor("✓ Usuarios: SQLite (" + dbPath + ")");
-                    } catch (SQLException e) {
-                        Util.printRedColor("\nERROR: No se pudo inicializar la base de usuarios: " + e.getMessage());
-                        FTP.Util.FileLogger.error("SQLite usuarios: " + e.getMessage());
-                        return;
-                    }
-                } else {
-                    usersFilePath = config.getUsersFile();
-                    File usersFile = new File(usersFilePath);
-                    if (!usersFile.exists() || !usersFile.isFile()) {
-                        Util.printRedColor("\nERROR: Archivo de usuarios no existe: " + usersFilePath);
-                        FTP.Util.FileLogger.error("Archivo de usuarios no existe: " + usersFilePath);
-                        return;
-                    }
-                    userStore = new FileUserStore(usersFilePath);
-                    Util.printGreenColor("✓ Usuarios: fichero (" + usersFilePath + ")");
-                }
-                Util.printGreenColor("✓ Directorio raíz: " + dirRoot);
-            } else {
-                checkDirs();
-                sc = new Scanner(System.in);
-                setRoot(sc);
-            }
         } catch (IOException e) {
             Util.printRedColor("\n⚠ No se pudo cargar server.properties, usando configuración por defecto");
             serverPort = CONTROL_PORT;
-            checkDirs();
-            sc = new Scanner(System.in);
-            setRoot(sc);
-            usersFilePath = config.getUsersFile();
-            userStore = new FileUserStore(usersFilePath);
         }
 
-        if (userStore == null) {
+        // 1) Root directory: from config or ask interactively
+        if (!config.getRootDirectory().isEmpty()) {
+            dirRoot = config.getRootDirectory();
+            File rootFile = new File(dirRoot);
+            if (!rootFile.exists() || !rootFile.isDirectory()) {
+                Util.printRedColor("\nERROR: Directorio raíz no existe: " + dirRoot);
+                FTP.Util.FileLogger.error("Directorio raíz no existe: " + dirRoot);
+                return;
+            }
+            Util.printGreenColor("✓ Directorio raíz: " + dirRoot);
+        } else {
+            checkFilesDir();
+            sc = new Scanner(System.in);
+            setRoot(sc);
+        }
+
+        // 2) User store: SQLite if configured, otherwise TXT file
+        String dbPath = config.getUsersDatabase();
+        if (dbPath != null && !dbPath.isEmpty()) {
+            try {
+                File dbFile = new File(dbPath);
+                if (!dbFile.exists()) {
+                    File parent = dbFile.getParentFile();
+                    if (parent != null) parent.mkdirs();
+                }
+                SqliteUserStore sqliteStore = new SqliteUserStore(dbPath);
+                sqliteStore.initSchema();
+                userStore = sqliteStore;
+                Util.printGreenColor("✓ Usuarios: SQLite (" + dbPath + ")");
+            } catch (SQLException e) {
+                Util.printRedColor("\nERROR: No se pudo inicializar la base de usuarios: " + e.getMessage());
+                FTP.Util.FileLogger.error("SQLite usuarios: " + e.getMessage());
+                return;
+            }
+        } else {
             usersFilePath = config.getUsersFile();
+            File usersFile = new File(usersFilePath);
+            if (!usersFile.exists() || !usersFile.isFile()) {
+                Util.printRedColor("\nERROR: Archivo de usuarios no existe: " + usersFilePath);
+                FTP.Util.FileLogger.error("Archivo de usuarios no existe: " + usersFilePath);
+                return;
+            }
             userStore = new FileUserStore(usersFilePath);
+            Util.printGreenColor("✓ Usuarios: fichero (" + usersFilePath + ")");
         }
 
         int maxConn = config.getMaxConnections();

@@ -425,6 +425,10 @@ public class FtpClientHandler implements Runnable {
 			sendReply(502, "TLS not configured.");
 			return;
 		}
+		// RFC 4217: send 234 over plaintext BEFORE the TLS handshake
+		sendReply(234, "Proceed with negotiation.");
+		out.flush();
+
 		SSLSocket sslSocket = null;
 		try {
 			sslSocket = (SSLSocket) ctx.getSocketFactory().createSocket(
@@ -433,24 +437,14 @@ public class FtpClientHandler implements Runnable {
 				controlSocket.getPort(),
 				true
 			);
+			sslSocket.setUseClientMode(false);
 			sslSocket.startHandshake();
-			if (in != null) in.close();
-			if (out != null) out.close();
 			in = new BufferedReader(new InputStreamReader(sslSocket.getInputStream(), "UTF-8"));
 			out = new PrintWriter(sslSocket.getOutputStream(), true);
 			controlSocket = sslSocket;
-			sslSocket = null; // ya asignado a controlSocket, no cerrar en finally
+			sslSocket = null;
 			tlsActive = true;
-			sendReply(234, "Proceed with negotiation.");
-		} catch (IOException e) {
-			sendReply(534, "Negotiation failed.");
-			FTP.Util.FileLogger.error("AUTH TLS fallido: " + e.getMessage());
-			Util.printRedColor("AUTH TLS fallido: " + e.getMessage());
-			if (sslSocket != null) {
-				try { sslSocket.close(); } catch (IOException ignored) { }
-			}
 		} catch (Exception e) {
-			sendReply(534, "Negotiation failed.");
 			FTP.Util.FileLogger.error("AUTH TLS fallido: " + e.getMessage());
 			Util.printRedColor("AUTH TLS fallido: " + e.getMessage());
 			if (sslSocket != null) {

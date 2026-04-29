@@ -497,14 +497,14 @@ Los comandos con classpath completo están en [Compilación y ejecución](#compi
                │
 ┌──────────────▼──────────────────────┐
 │   3. Validar Estructura             │
-│      ✓ Directorio raíz existe      │
+│      ✓ Directorio raíz existe       │
 │      ✓ Usuarios: SQLite o TXT       │
 └──────────────┬──────────────────────┘
                │
-┌──────────────▼──────────────────────┐
-│   4. Iniciar Escucha                │
+┌──────────────▼────────────────────────┐
+│   4. Iniciar Escucha                  │
 │      Servidor escuchando en puerto 21 │
-└──────────────┬──────────────────────┘
+└──────────────┬────────────────────────┘
                │
 ┌──────────────▼──────────────────────┐
 │   5. Listo para Conexiones          │

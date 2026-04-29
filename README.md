@@ -73,7 +73,7 @@ Al estudiar y ejecutar este proyecto, entenderás:
 - Cómo implementar el análisis de comandos y los códigos de respuesta del lado del servidor.
 - Cómo gestionar conexiones de clientes concurrentes con pools de hilos.
 - Cómo manejar los modos de transferencia de datos ACTIVO y PASIVO.
-✓ Cómo construir sistemas de permisos basados en roles.
+- Cómo construir sistemas de permisos basados en roles.
 - Cómo crear aplicaciones de escritorio con GUI usando Java Swing.
 - Cómo trabajar con E/S de archivos y flujos de red.
 

@@ -69,13 +69,13 @@ Este proyecto es una implementación educativa completa del Protocolo de Transfe
 
 Al estudiar y ejecutar este proyecto, entenderás:
 
-✓ Cómo funciona el protocolo FTP a nivel de red (canales de control y de datos).
-✓ Cómo implementar el análisis de comandos y los códigos de respuesta del lado del servidor.
-✓ Cómo gestionar conexiones de clientes concurrentes con pools de hilos.
-✓ Cómo manejar los modos de transferencia de datos ACTIVO y PASIVO.
+- Cómo funciona el protocolo FTP a nivel de red (canales de control y de datos).
+- Cómo implementar el análisis de comandos y los códigos de respuesta del lado del servidor.
+- Cómo gestionar conexiones de clientes concurrentes con pools de hilos.
+- Cómo manejar los modos de transferencia de datos ACTIVO y PASIVO.
 ✓ Cómo construir sistemas de permisos basados en roles.
-✓ Cómo crear aplicaciones de escritorio con GUI usando Java Swing.
-✓ Cómo trabajar con E/S de archivos y flujos de red.
+- Cómo crear aplicaciones de escritorio con GUI usando Java Swing.
+- Cómo trabajar con E/S de archivos y flujos de red.
 
 -----
 
